@@ -434,14 +434,14 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	float maxPlayerY = playerTilePos.y + (m_PlayerDimensions.y / 2.0f);
 	
 
-	if(m_BallPosition.x < minPlayerX){ testingX = minPlayerX;}
-	else if(m_BallPosition.x > maxPlayerX){ testingX = maxPlayerX;}
+	if(futureBallPosition.x < minPlayerX){ testingX = minPlayerX;}
+	else if(futureBallPosition.x > maxPlayerX){ testingX = maxPlayerX;}
 	
-	if (m_BallPosition.y < minPlayerY) { testingY = minPlayerY; }
-	else if (m_BallPosition.y > maxPlayerY) { testingY = maxPlayerY; }
+	if (futureBallPosition.y < minPlayerY) { testingY = minPlayerY; }
+	else if (futureBallPosition.y > maxPlayerY) { testingY = maxPlayerY; }
 	
-	float distanceX = m_BallPosition.x - testingX;
-	float distanceY = m_BallPosition.y - testingY;
+	float distanceX = futureBallPosition.x - testingX;
+	float distanceY = futureBallPosition.y - testingY;
 	float overallDistance = sqrt((distanceX * distanceX)+ (distanceY* distanceY));
 
 	if (overallDistance <= m_BallRadius) {
