@@ -56,17 +56,18 @@ const sf::Color ONE_HIT_COLOR = sf::Color::Red;
 bool				m_CurrentInputToWorkWith = false;
 Tile*				m_PlayerTile; 
 const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(25.0f, 10.0f) * scalingFactor;
-sf::Vector2f		m_PlayerPosition		= sf::Vector2f((WINDOW_WIDTH / 2.0f) - (m_PlayerDimensions.x / 2.0f), WINDOW_HEIGHT * 0.66f);
+//sf::Vector2f		m_PlayerPosition		= sf::Vector2f((WINDOW_WIDTH / 2.0f) - (m_PlayerDimensions.x / 2.0f), WINDOW_HEIGHT * 0.66f);
+sf::Vector2f m_PlayerPosition				= sf::Vector2f(146.345f, 396.0f);
 sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 float				m_PMovementIncrements	= 0.05f;
 
 //Ball Variables
-float m_BallDiametre = 2.0f * scalingFactor;
+float m_BallRadius = 2.0f * scalingFactor;
 sf::Vector2f m_BallPosition; 
 sf::Vector2f m_BallDirection;
 float m_BallAngle = 315.0f;
 float m_BallSpeed = 0.02f;
-float m_RepellantDistance = m_BallDiametre/2.0f;
+float m_RepellantDistance = m_BallRadius/2.0f;
 
 bool	m_BlockMovementChanges = false;
 int		m_BM_Timer = 0;
@@ -136,7 +137,7 @@ int main()
 	m_PlayerTile->position = m_PlayerPosition;
 	
 	//create ball
-	sf::CircleShape ball = sf::CircleShape(m_BallDiametre);
+	sf::CircleShape ball = sf::CircleShape(m_BallRadius);
 	m_BallPosition = m_BallStarterPosition_UNALTERED;
 	ball.setFillColor(sf::Color::Red);
 	ball.setPosition(m_BallPosition);
@@ -251,7 +252,7 @@ bool DoGameLoopCalculations(sf::CircleShape& ball, sf::RectangleShape tileShapes
 
 	sf::Vector2f playerCollisionBounceDirection;
 	sf::Vector2f tileCollisionBounceDirection;
-	bool collisionWithPlayer = CheckForCollisionWithPlayer(m_PlayerPosition, &playerCollisionBounceDirection);
+	bool collisionWithPlayer = CheckForCollisionWithPlayer(m_PlayerPosition, &playerCollisionBounceDirection, ball);
 	bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(tileShapes, gametiles);
 
 	//3) move ball
@@ -363,6 +364,12 @@ bool CheckForInput() {
 		inputAllowed[0] = false;
 	}
 
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::O) && inputAllowed[7]) {
+
+		std::cout << "Player Pos:" << m_PlayerPosition.x << " ," << m_PlayerPosition.y << std::endl;
+		inputAllowed[7] = false;
+	}
+
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && inputAllowed[1]) {
 		m_PauseGame = !m_PauseGame;
 		std::cout <<"Game Pause: " << m_PauseGame <<std::endl;
@@ -409,7 +416,7 @@ float clip(float n, float lower, float upper) {
 }
 
 
-bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection)
+bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::CircleShape& ball)
 {
 	
 	bool playerCollideVertical = false;
@@ -418,21 +425,64 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	
 	sf::Vector2f futureBallPosition = m_BallPosition + m_BallDirection;
 
-	sf::Vector2f circleDistance;
-	circleDistance.x = abs(futureBallPosition.x - (playerTilePos.x - m_BallDiametre));
-	circleDistance.y = abs(futureBallPosition.y - (playerTilePos.y - m_BallDiametre));
+	float testingX = m_BallPosition.x;
+	float testingY = m_BallPosition.y;
 
-	playerCollideVertical = VerticalCollisionCheck(circleDistance);
-	playerCollideHorizontal = HorizontalCollisionCheck(circleDistance);
+	float minPlayerX = playerTilePos.x - (m_PlayerDimensions.x /2.0f);
+	float maxPlayerX = playerTilePos.x + (m_PlayerDimensions.x /2.0f);
+	float minPlayerY = playerTilePos.y - (m_PlayerDimensions.y / 2.0f);
+	float maxPlayerY = playerTilePos.y + (m_PlayerDimensions.y / 2.0f);
+	
 
-	/*if (CornerCollisionCheck(circleDistance)) {
-		*bounceDirection = sf::Vector2f(m_BallDirection.x* -1.0f, m_BallDirection.y* -1.0f);
-		return true;
-	}*/
+	if(m_BallPosition.x < minPlayerX){ testingX = minPlayerX;}
+	else if(m_BallPosition.x > maxPlayerX){ testingX = maxPlayerX;}
+	
+	if (m_BallPosition.y < minPlayerY) { testingY = minPlayerY; }
+	else if (m_BallPosition.y > maxPlayerY) { testingY = maxPlayerY; }
+	
+	float distanceX = m_BallPosition.x - testingX;
+	float distanceY = m_BallPosition.y - testingY;
+	float overallDistance = sqrt((distanceX * distanceX)+ (distanceY* distanceY));
 
-	if (playerCollideHorizontal && playerCollideVertical) {
+	if (overallDistance <= m_BallRadius) {
+		bool verticalIsClosest = (distanceY < distanceX);
+		if (verticalIsClosest) {
+			playerCollideVertical = true;
+		}
+		else {
+			playerCollideHorizontal = true;
+		}
+		
+	}
 
-		bool verticalIsClosest = (circleDistance.y > circleDistance.x);
+	//sf::Vector2f circleDistance;
+	//circleDistance.x = abs(futureBallPosition.x - (playerTilePos.x - m_BallDiametre));
+	//circleDistance.y = abs(futureBallPosition.y - (playerTilePos.y - m_BallDiametre));
+
+	//bool circleWithinVerticalArea = (circleDistance.y < ((m_PlayerDimensions.y / 2) + m_BallDiametre));
+	////check if the ball is within the area of (playerdimensions/2 + the ball diametre)
+	//if (circleWithinVerticalArea && (circleDistance.x < ((m_PlayerDimensions.x / 2) + m_BallDiametre))) {
+	//	std::cout << "Within area!" << std::endl;
+	//	bool verticalIsClosest = (circleDistance.y < circleDistance.x);
+	//	if (verticalIsClosest) {
+	//		playerCollideVertical = true;
+	//	}
+	//	else {
+	//		playerCollideHorizontal = true;
+	//	}
+	//}
+	//
+	///*playerCollideVertical = VerticalCollisionCheck(circleDistance);
+	//playerCollideHorizontal = HorizontalCollisionCheck(circleDistance);*/
+
+	//if (CornerCollisionCheck(circleDistance)) {
+	//	*bounceDirection = sf::Vector2f(m_BallDirection.x* -1.0f, m_BallDirection.y* -1.0f);
+	//	return true;
+	//}
+
+	/*if (playerCollideHorizontal && playerCollideVertical) {
+
+		bool verticalIsClosest = (circleDistance.y < circleDistance.x);
 		if (verticalIsClosest) {
 			playerCollideHorizontal = false;
 		}
@@ -440,13 +490,16 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 			playerCollideVertical = false;
 		}
 	}
-	
+	*/
+	ball.setFillColor(sf::Color::Red);
 	if (playerCollideVertical) {
+		ball.setFillColor(sf::Color::Yellow);
 		*bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
 		return true;
 	}
 
 	if (playerCollideHorizontal) {
+		ball.setFillColor(sf::Color::Magenta);
 		*bounceDirection = sf::Vector2f(m_BallDirection.x * -1.0f, m_BallDirection.y);
 		return true;
 	}
@@ -456,34 +509,34 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 }
 
 bool CornerCollisionCheck(sf::Vector2f circleDistance) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + m_BallDiametre)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + m_BallDiametre)) { return false; }
+	if (circleDistance.y > (m_PlayerDimensions.y / 2 + m_BallRadius)) { return false; }
+	if (circleDistance.x > (m_PlayerDimensions.x / 2 + m_BallRadius)) { return false; }
 	
 	float cornerDistance_sq = ((circleDistance.x - m_PlayerDimensions.x / 2) * (circleDistance.x - m_PlayerDimensions.x / 2)) +
 		((circleDistance.y - m_PlayerDimensions.y / 2) * (circleDistance.y - m_PlayerDimensions.y / 2));
 
-	if ((cornerDistance_sq <= (m_BallDiametre * m_BallDiametre))) { return true; }
+	if ((cornerDistance_sq <= (m_BallRadius * m_BallRadius))) { return true; }
 	return false;
 }
 bool VerticalCollisionCheck(sf::Vector2f circleDistance) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + m_BallDiametre)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + m_BallDiametre)) { return false;}
-	if (circleDistance.x < (m_PlayerDimensions.x / 2 + m_BallDiametre)) {
-		if (circleDistance.y <= ((m_PlayerDimensions.y / 2) + m_BallDiametre)) { return true; }
-	}
+	if (circleDistance.y > (m_PlayerDimensions.y / 2 + m_BallRadius)) { return false; }
+	if (circleDistance.x > (m_PlayerDimensions.x / 2 + m_BallRadius)) { return false;}
+	/*if (circleDistance.x < (m_PlayerDimensions.x / 2 + m_BallDiametre)) {*/
+		if (circleDistance.y <= ((m_PlayerDimensions.y / 2) + m_BallRadius)) { return true; }
+	/*}*/
 	
 	return false;
 	
 }
 
 bool HorizontalCollisionCheck(sf::Vector2f circleDistance) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + m_BallDiametre)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + m_BallDiametre)) { return false; }
+	if (circleDistance.y > (m_PlayerDimensions.y / 2 + m_BallRadius)) { return false; }
+	if (circleDistance.x > (m_PlayerDimensions.x / 2 + m_BallRadius)) { return false; }
 
-	if (circleDistance.y < (m_PlayerDimensions.y / 2 + m_BallDiametre))
-	{
-		if (circleDistance.x <= (m_PlayerDimensions.x / 2) + m_BallDiametre) { return true;}
-	}
+	/*if (circleDistance.y < (m_PlayerDimensions.y / 2 + m_BallDiametre))
+	{*/
+		if (circleDistance.x <= (m_PlayerDimensions.x / 2) + m_BallRadius) { return true;}
+	/*}*/
 	
 	return false;
 	
