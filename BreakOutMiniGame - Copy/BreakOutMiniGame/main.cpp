@@ -57,7 +57,7 @@ bool				m_CurrentInputToWorkWith = false;
 Tile*				m_PlayerTile; 
 const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(25.0f, 10.0f) * scalingFactor;
 //sf::Vector2f		m_PlayerPosition		= sf::Vector2f((WINDOW_WIDTH / 2.0f) - (m_PlayerDimensions.x / 2.0f), WINDOW_HEIGHT * 0.66f);
-sf::Vector2f m_PlayerPosition				= sf::Vector2f(146.345f, 396.0f);
+sf::Vector2f m_PlayerPosition				= sf::Vector2f(198.798f, 396.0f);
 sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 float				m_PMovementIncrements	= 0.05f;
 
@@ -447,6 +447,7 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	bool upY	= false;
 	bool downY	= false;
 
+
 	if(futureBallPosition.x < minPlayerX){ testingX			= minPlayerX; leftX		= true;}
 	else if(futureBallPosition.x > maxPlayerX){ testingX	= maxPlayerX; rightX	= true;}
 	
@@ -460,18 +461,44 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	//insert corner check here (check for (if ball.pos == one of the corner pos) -> give direction that yeets it in a line from the tile pos- tile corner)
 	//code here
 
+	bool cornerWasHit = false;
+	bool leftUpperCorner = false;
+	bool rightUpperCorner = false;
+	bool leftLowerCorner = false;
+	bool rightLowerCorner = false;
 
 	if (overallDistance <= m_BallRadius) {
 
 		//test for which section the ball is in 
+		
 
-		if (leftX || rightX) {
+		if (upY && leftX) {
+			leftUpperCorner = true;
+			cornerWasHit = true;
+		}
+		else if (downY &&leftX) {
+			leftLowerCorner = true;
+			cornerWasHit = true;
+		}
+		else if (upY && rightX) {
+			rightUpperCorner = true;
+			cornerWasHit = true;
+		}
+		else if (downY &&rightX) {
+			rightLowerCorner = true;
+			cornerWasHit = true;
+		}
+
+		if (!cornerWasHit && (leftX || rightX)) {
+			
+
 			playerCollideHorizontal = true;
 		}
 
-		if (upY || downY) {
+		if (!cornerWasHit && (upY || downY)) {
 			playerCollideVertical = true;
 		}
+
 		/*bool verticalIsClosest = (distanceY < distanceX);
 		if (verticalIsClosest) {
 			playerCollideVertical = true;
@@ -484,6 +511,11 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 
 	
 	ball.setFillColor(sf::Color::Red);
+
+	if (cornerWasHit) {
+		*bounceDirection = sf::Vector2f(m_BallDirection.x * -1.0f, m_BallDirection.y* -1.0f);
+		return true;
+	}
 	if (playerCollideVertical) {
 		ball.setFillColor(sf::Color::Yellow);
 		*bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
