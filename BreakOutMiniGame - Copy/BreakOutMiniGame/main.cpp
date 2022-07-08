@@ -121,8 +121,9 @@ int main()
 	for (int i = 0; i < tileArrayLength; i++) {
 		float outlineThickness = 0.5f;
 		sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f* outlineThickness,2.0f* outlineThickness);
-		sf::Vector2<float> position = sf::Vector2<float>((gametiles[i]->position.x * (WINDOW_WIDTH/WINDOW_SEGMENTS_WIDTH)) + outlineThickness, gametiles[i]->position.y * (WINDOW_HEIGHT/WINDOW_SEGMENTS_HEIGHT)/3.0f);
+		sf::Vector2<float> position = sf::Vector2<float>((gametiles[i]->position.x * (WINDOW_WIDTH/WINDOW_SEGMENTS_WIDTH)) + outlineThickness + (m_TileDimensions.x /2.0f), gametiles[i]->position.y * (WINDOW_HEIGHT/WINDOW_SEGMENTS_HEIGHT)/3.0f + (m_TileDimensions.y /2.0f));
 		sf::RectangleShape rect(size);
+		rect.setOrigin(m_TileDimensions.x/2.0f, m_TileDimensions.y/2.0f);
 		rect.setFillColor(NO_HIT_COLOR);
 		rect.setOutlineColor(sf::Color::White);
 		rect.setOutlineThickness(outlineThickness);
@@ -227,7 +228,7 @@ bool DoGameLoopCalculations(sf::CircleShape& ball, sf::RectangleShape tileShapes
 	//Update Player Position
 
 	if (m_CurrentInputToWorkWith) {
-		m_PlayerPosition = sf::Vector2f(clip((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f, WINDOW_WIDTH - m_PlayerDimensions.x), m_PlayerPosition.y);
+		m_PlayerPosition = sf::Vector2f(clip((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f + (m_PlayerDimensions.x / 2.0f), WINDOW_WIDTH - (m_PlayerDimensions.x /2.0f)), m_PlayerPosition.y);
 		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 		m_CurrentInputToWorkWith = false;
 	}
@@ -253,11 +254,15 @@ bool DoGameLoopCalculations(sf::CircleShape& ball, sf::RectangleShape tileShapes
 	sf::Vector2f playerCollisionBounceDirection;
 	sf::Vector2f tileCollisionBounceDirection;
 	bool collisionWithPlayer = CheckForCollisionWithPlayer(m_PlayerPosition, &playerCollisionBounceDirection, ball);
-	bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(tileShapes, gametiles);
+	bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(tileShapes, gametiles, ball, &tileCollisionBounceDirection);
 
 	//3) move ball
 	if (collisionWithPlayer) {
 		m_BallDirection = playerCollisionBounceDirection;
+	}
+
+	if (collisionWithTile) {
+		m_BallDirection = tileCollisionBounceDirection;
 	}
 
 	
@@ -420,6 +425,8 @@ float clip(float n, float lower, float upper) {
 bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::CircleShape& ball)
 {
 	
+	//TODO 
+	//1) add a safeguard that the actual setting of the new direction will only commence once this collision check comes back as negative for the possible next location
 	bool playerCollideVertical = false;
 	bool playerCollideHorizontal = false;
 
@@ -527,93 +534,190 @@ bool HorizontalCollisionCheck(sf::Vector2f circleDistance) {
 	
 }
 
-bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes,  Tile** gametiles) {
-	if (m_BlockMovementChanges) {
+bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes,  Tile** gametiles, sf::CircleShape& ball, sf::Vector2f* bounceDirection) {
 
-		if (m_BM_Timer < m_BlockedMovementFrameTime) {
-			m_BM_Timer++;
 
-			return false;
-		}
-		if (m_BM_Timer > m_BlockedMovementFrameTime ) {
-			m_BlockMovementChanges = false;
-			m_BM_Timer = 0;
-		}
-	}
+	bool playerCollideVertical = false;
+	bool playerCollideHorizontal = false;
+
+
+	sf::Vector2f futureBallPosition = (m_BallPosition + sf::Vector2f(m_BallRadius, m_BallRadius)) + m_BallDirection;
+
 	
 
-
 	for (int i = 0; i < tileArrayLength; i++) {
-
-		//check for every tile if the ball is colliding with one of its walls 
-
-		bool horizontalCollision = false;
-
-		bool verticalCollision = false;
-
 		bool alive = gametiles[i]->isAlive;
 		if (!alive) {
 			continue;
 		}
 		sf::Vector2f currentTilePosition = tileShapes[i].getPosition();
-
-		//downcollide = if the ball is under the tile, as well as within the width position of the tile, as well as within a certain distance to the tile
-
-		if (m_BallPosition.x < (currentTilePosition.x + m_TileDimensions.x)
-			&& m_BallPosition.x >(currentTilePosition.x - m_TileDimensions.x)) {
-			float distanceOnYAxis_Bottom = (currentTilePosition.y +  m_TileDimensions.y) - m_BallPosition.y;
-			float distanceOnYAxis_Top = (currentTilePosition.y - m_TileDimensions.y) - m_BallPosition.y;
-
-			// i think i need bounce rules for the top and the bottom separately
-			if ((std::abs(distanceOnYAxis_Bottom) < m_RepellantDistance | std::abs(distanceOnYAxis_Top) < m_RepellantDistance) && (distanceOnYAxis_Bottom > 0.0f | distanceOnYAxis_Top < 0.0f)) {
-				/*std::cout << distanceOnYAxis_Bottom << ": is distance on bottom" << std::endl;
-				std::cout << distanceOnYAxis_Top << ": is distance on top" << std::endl;*/
-
-				gametiles[i]->hitCount += 1;
-				int currentHitCount = gametiles[i]->hitCount;
-				if (currentHitCount >= m_TileHitsAllowed) {
-					gametiles[i]->isAlive = false;
-				}
-				
-				verticalCollision = true;
-			}
-
-
-		}
-
-		if (m_BallPosition.y < (currentTilePosition.y + m_TileDimensions.y)
-			&& m_BallPosition.x >(currentTilePosition.y - m_TileDimensions.y)) {
-			float distanceOnXAxis_Right = (currentTilePosition.y + m_TileDimensions.x) - m_BallPosition.x;
-			float distanceOnXAxis_Left = (currentTilePosition.y - m_TileDimensions.x) - m_BallPosition.x;
-
-
-			float playerRepellantDistance = 0.5f;
-			// i think i need bounce rules for the top and the bottom separately
-			if ((std::abs(distanceOnXAxis_Right) < m_RepellantDistance | std::abs(distanceOnXAxis_Left) < m_RepellantDistance) && (distanceOnXAxis_Right > 0.0f | distanceOnXAxis_Left < 0.0f)) {
-				/*std::cout << distanceOnXAxis_Right << ": is distance on bottom" << std::endl;
-				std::cout << distanceOnXAxis_Left << ": is distance on top" << std::endl;*/
-				gametiles[i]->isAlive = false;
-				horizontalCollision = true;
-			}
-
-
-		}
-
-		if (horizontalCollision) {
-			m_BallDirection = sf::Vector2f(m_BallDirection.x * -1.0f, m_BallDirection.y);
-			m_BlockMovementChanges = true;
-			return true;
-		}
-
-
-		if (verticalCollision) {
-			m_BallDirection =  sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
-			m_BlockMovementChanges = true;
-			return true;
-		}
+		float testingX = futureBallPosition.x;
+		float testingY = futureBallPosition.y;
 		
+		float minTileX = currentTilePosition.x - (m_TileDimensions.x /2.0f);
+		float maxTileX = currentTilePosition.x + (m_TileDimensions.x /2.0f);
+		float minTileY = currentTilePosition.y - (m_TileDimensions.y / 2.0f);
+		float maxTileY = currentTilePosition.y + (m_TileDimensions.y / 2.0f);
+
+		//bools to check for section position of the ball
+		bool leftX	= false;
+		bool rightX = false;
+		bool upY	= false;
+		bool downY	= false;
+
+		if(futureBallPosition.x < minTileX){ testingX			= minTileX; leftX		= true;}
+		else if(futureBallPosition.x > maxTileX){ testingX	= maxTileX; rightX	= true;}
+
+		if (futureBallPosition.y < minTileY) {testingY		= minTileY; upY		= true;}
+		else if (futureBallPosition.y > maxTileY) { testingY	= maxTileY; downY		= true;}
+
+		float distanceX = futureBallPosition.x - testingX;
+		float distanceY = futureBallPosition.y - testingY;
+		float overallDistance = sqrt((distanceX * distanceX)+ (distanceY* distanceY));
+
+		//insert corner check here (check for (if ball.pos == one of the corner pos) -> give direction that yeets it in a line from the tile pos- tile corner)
+		//code here
+
+
+		if (overallDistance <= m_BallRadius) {
+
+			//test for which section the ball is in 
+
+			if (leftX || rightX) {
+				playerCollideHorizontal = true;
+			}
+
+			if (upY || downY) {
+				playerCollideVertical = true;
+			}
+			/*bool verticalIsClosest = (distanceY < distanceX);
+			if (verticalIsClosest) {
+			playerCollideVertical = true;
+			}
+			else {
+			playerCollideHorizontal = true;
+			}*/
+
+		}
+
+
+		ball.setFillColor(sf::Color::Red);
+		if (playerCollideVertical) {
+			ball.setFillColor(sf::Color::Yellow);
+			*bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
+			gametiles[i]->hitCount += 1;
+			int currentHitCount = gametiles[i]->hitCount;
+			if (currentHitCount >= m_TileHitsAllowed) {
+				gametiles[i]->isAlive = false;
+			}
+			return true;
+		}
+
+		if (playerCollideHorizontal) {
+			ball.setFillColor(sf::Color::Magenta);
+			*bounceDirection = sf::Vector2f(m_BallDirection.x * -1.0f, m_BallDirection.y);
+			gametiles[i]->hitCount += 1;
+			int currentHitCount = gametiles[i]->hitCount;
+			if (currentHitCount >= m_TileHitsAllowed) {
+				gametiles[i]->isAlive = false;
+			}
+			return true;
+		}
 	}
-	return true;
+
+	
+
+
+	
+
+
+	return false;
+	//if (m_BlockMovementChanges) {
+
+	//	if (m_BM_Timer < m_BlockedMovementFrameTime) {
+	//		m_BM_Timer++;
+
+	//		return false;
+	//	}
+	//	if (m_BM_Timer > m_BlockedMovementFrameTime ) {
+	//		m_BlockMovementChanges = false;
+	//		m_BM_Timer = 0;
+	//	}
+	//}
+	//
+
+
+	//for (int i = 0; i < tileArrayLength; i++) {
+
+	//	check for every tile if the ball is colliding with one of its walls 
+
+	//	bool horizontalCollision = false;
+
+	//	bool verticalCollision = false;
+
+	//	bool alive = gametiles[i]->isAlive;
+	//	if (!alive) {
+	//		continue;
+	//	}
+	//	sf::Vector2f currentTilePosition = tileShapes[i].getPosition();
+
+	//	downcollide = if the ball is under the tile, as well as within the width position of the tile, as well as within a certain distance to the tile
+
+	//	if (m_BallPosition.x < (currentTilePosition.x + m_TileDimensions.x)
+	//		&& m_BallPosition.x >(currentTilePosition.x - m_TileDimensions.x)) {
+	//		float distanceOnYAxis_Bottom = (currentTilePosition.y +  m_TileDimensions.y) - m_BallPosition.y;
+	//		float distanceOnYAxis_Top = (currentTilePosition.y - m_TileDimensions.y) - m_BallPosition.y;
+
+	//		 i think i need bounce rules for the top and the bottom separately
+	//		if ((std::abs(distanceOnYAxis_Bottom) < m_RepellantDistance | std::abs(distanceOnYAxis_Top) < m_RepellantDistance) && (distanceOnYAxis_Bottom > 0.0f | distanceOnYAxis_Top < 0.0f)) {
+	//			/*std::cout << distanceOnYAxis_Bottom << ": is distance on bottom" << std::endl;
+	//			std::cout << distanceOnYAxis_Top << ": is distance on top" << std::endl;*/
+
+	//			gametiles[i]->hitCount += 1;
+	//			int currentHitCount = gametiles[i]->hitCount;
+	//			if (currentHitCount >= m_TileHitsAllowed) {
+	//				gametiles[i]->isAlive = false;
+	//			}
+	//			
+	//			verticalCollision = true;
+	//		}
+
+
+	//	}
+
+	//	if (m_BallPosition.y < (currentTilePosition.y + m_TileDimensions.y)
+	//		&& m_BallPosition.x >(currentTilePosition.y - m_TileDimensions.y)) {
+	//		float distanceOnXAxis_Right = (currentTilePosition.y + m_TileDimensions.x) - m_BallPosition.x;
+	//		float distanceOnXAxis_Left = (currentTilePosition.y - m_TileDimensions.x) - m_BallPosition.x;
+
+
+	//		float playerRepellantDistance = 0.5f;
+	//		 i think i need bounce rules for the top and the bottom separately
+	//		if ((std::abs(distanceOnXAxis_Right) < m_RepellantDistance | std::abs(distanceOnXAxis_Left) < m_RepellantDistance) && (distanceOnXAxis_Right > 0.0f | distanceOnXAxis_Left < 0.0f)) {
+	//			/*std::cout << distanceOnXAxis_Right << ": is distance on bottom" << std::endl;
+	//			std::cout << distanceOnXAxis_Left << ": is distance on top" << std::endl;*/
+	//			gametiles[i]->isAlive = false;
+	//			horizontalCollision = true;
+	//		}
+
+
+	//	}
+
+	//	if (horizontalCollision) {
+	//		m_BallDirection = sf::Vector2f(m_BallDirection.x * -1.0f, m_BallDirection.y);
+	//		m_BlockMovementChanges = true;
+	//		return true;
+	//	}
+
+
+	//	if (verticalCollision) {
+	//		m_BallDirection =  sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
+	//		m_BlockMovementChanges = true;
+	//		return true;
+	//	}
+	//	
+	//}
+	//return true;
 }
 
 float lerp(float a, float b, float f)

@@ -5,7 +5,7 @@ bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength);
 bool CheckForInput();
 float clip(float n, float lower, float upper);
 bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::CircleShape& ball);
-bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes, Tile** gametiles);
+bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes, Tile** gametiles, sf::CircleShape& ball, sf::Vector2f* bounceDirection);
 float lerp(float a, float b, float f);
 bool VerticalCollisionCheck(sf::Vector2f circleDistance);
 bool HorizontalCollisionCheck(sf::Vector2f circleDistance);
