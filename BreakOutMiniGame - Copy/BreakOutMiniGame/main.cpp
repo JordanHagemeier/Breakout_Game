@@ -292,7 +292,8 @@ bool RenderGameData(sf::RenderWindow& window, sf::CircleShape& ball, sf::Rectang
 
 	//draw player tile
 	sf::RectangleShape playerTile = sf::RectangleShape(m_PlayerDimensions);
-	sf::Vector2f drawingPos = sf::Vector2f(m_PlayerPosition.x - (m_PlayerDimensions.x / 2.0f), m_PlayerPosition.y - (m_PlayerDimensions.y / 2.0f));
+	playerTile.setOrigin(sf::Vector2f(m_PlayerDimensions.x/2.0f, m_PlayerDimensions.y/2.0f));
+	sf::Vector2f drawingPos = sf::Vector2f(m_PlayerPosition.x , m_PlayerPosition.y );
 	playerTile.setPosition(drawingPos);
 	playerTile.setFillColor(sf::Color::Green);
 	playerTile.setOutlineColor(sf::Color::Yellow);
@@ -425,33 +426,47 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	
 	sf::Vector2f futureBallPosition = m_BallPosition + m_BallDirection;
 
-	float testingX = m_BallPosition.x;
-	float testingY = m_BallPosition.y;
+	float testingX = futureBallPosition.x;
+	float testingY = futureBallPosition.y;
 
 	float minPlayerX = playerTilePos.x - (m_PlayerDimensions.x /2.0f);
 	float maxPlayerX = playerTilePos.x + (m_PlayerDimensions.x /2.0f);
 	float minPlayerY = playerTilePos.y - (m_PlayerDimensions.y / 2.0f);
 	float maxPlayerY = playerTilePos.y + (m_PlayerDimensions.y / 2.0f);
 	
+	bool leftX = false;
+	bool rightX = false;
+	bool upY = false;
+	bool downY = false;
 
-	if(futureBallPosition.x < minPlayerX){ testingX = minPlayerX;}
-	else if(futureBallPosition.x > maxPlayerX){ testingX = maxPlayerX;}
+	if(futureBallPosition.x < minPlayerX){ testingX = minPlayerX; leftX = true;}
+	else if(futureBallPosition.x > maxPlayerX){ testingX = maxPlayerX; rightX = true;}
 	
-	if (futureBallPosition.y < minPlayerY) { testingY = minPlayerY; }
-	else if (futureBallPosition.y > maxPlayerY) { testingY = maxPlayerY; }
+	if (futureBallPosition.y < minPlayerY) { testingY = minPlayerY; upY = true;}
+	else if (futureBallPosition.y > maxPlayerY) { testingY = maxPlayerY; downY = true;}
 	
 	float distanceX = futureBallPosition.x - testingX;
 	float distanceY = futureBallPosition.y - testingY;
 	float overallDistance = sqrt((distanceX * distanceX)+ (distanceY* distanceY));
 
 	if (overallDistance <= m_BallRadius) {
-		bool verticalIsClosest = (distanceY < distanceX);
+
+		//test for which quadrant the ball is in 
+
+		if (leftX || rightX) {
+			playerCollideHorizontal = true;
+		}
+
+		if (upY || downY) {
+			playerCollideVertical = true;
+		}
+		/*bool verticalIsClosest = (distanceY < distanceX);
 		if (verticalIsClosest) {
 			playerCollideVertical = true;
 		}
 		else {
 			playerCollideHorizontal = true;
-		}
+		}*/
 		
 	}
 
