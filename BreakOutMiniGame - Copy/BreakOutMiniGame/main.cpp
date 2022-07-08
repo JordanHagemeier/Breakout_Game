@@ -424,7 +424,7 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	bool playerCollideHorizontal = false;
 
 	
-	sf::Vector2f futureBallPosition = m_BallPosition + m_BallDirection;
+	sf::Vector2f futureBallPosition = (m_BallPosition + sf::Vector2f(m_BallRadius, m_BallRadius)) + m_BallDirection;
 
 	float testingX = futureBallPosition.x;
 	float testingY = futureBallPosition.y;
@@ -434,24 +434,29 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	float minPlayerY = playerTilePos.y - (m_PlayerDimensions.y / 2.0f);
 	float maxPlayerY = playerTilePos.y + (m_PlayerDimensions.y / 2.0f);
 	
-	bool leftX = false;
+	//bools to check for section position of the ball
+	bool leftX	= false;
 	bool rightX = false;
-	bool upY = false;
-	bool downY = false;
+	bool upY	= false;
+	bool downY	= false;
 
-	if(futureBallPosition.x < minPlayerX){ testingX = minPlayerX; leftX = true;}
-	else if(futureBallPosition.x > maxPlayerX){ testingX = maxPlayerX; rightX = true;}
+	if(futureBallPosition.x < minPlayerX){ testingX			= minPlayerX; leftX		= true;}
+	else if(futureBallPosition.x > maxPlayerX){ testingX	= maxPlayerX; rightX	= true;}
 	
-	if (futureBallPosition.y < minPlayerY) { testingY = minPlayerY; upY = true;}
-	else if (futureBallPosition.y > maxPlayerY) { testingY = maxPlayerY; downY = true;}
+	if (futureBallPosition.y < minPlayerY) {testingY		= minPlayerY; upY		= true;}
+	else if (futureBallPosition.y > maxPlayerY) { testingY	= maxPlayerY; downY		= true;}
 	
 	float distanceX = futureBallPosition.x - testingX;
 	float distanceY = futureBallPosition.y - testingY;
 	float overallDistance = sqrt((distanceX * distanceX)+ (distanceY* distanceY));
 
+	//insert corner check here (check for (if ball.pos == one of the corner pos) -> give direction that yeets it in a line from the tile pos- tile corner)
+	//code here
+
+
 	if (overallDistance <= m_BallRadius) {
 
-		//test for which quadrant the ball is in 
+		//test for which section the ball is in 
 
 		if (leftX || rightX) {
 			playerCollideHorizontal = true;
@@ -470,42 +475,7 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 		
 	}
 
-	//sf::Vector2f circleDistance;
-	//circleDistance.x = abs(futureBallPosition.x - (playerTilePos.x - m_BallDiametre));
-	//circleDistance.y = abs(futureBallPosition.y - (playerTilePos.y - m_BallDiametre));
-
-	//bool circleWithinVerticalArea = (circleDistance.y < ((m_PlayerDimensions.y / 2) + m_BallDiametre));
-	////check if the ball is within the area of (playerdimensions/2 + the ball diametre)
-	//if (circleWithinVerticalArea && (circleDistance.x < ((m_PlayerDimensions.x / 2) + m_BallDiametre))) {
-	//	std::cout << "Within area!" << std::endl;
-	//	bool verticalIsClosest = (circleDistance.y < circleDistance.x);
-	//	if (verticalIsClosest) {
-	//		playerCollideVertical = true;
-	//	}
-	//	else {
-	//		playerCollideHorizontal = true;
-	//	}
-	//}
-	//
-	///*playerCollideVertical = VerticalCollisionCheck(circleDistance);
-	//playerCollideHorizontal = HorizontalCollisionCheck(circleDistance);*/
-
-	//if (CornerCollisionCheck(circleDistance)) {
-	//	*bounceDirection = sf::Vector2f(m_BallDirection.x* -1.0f, m_BallDirection.y* -1.0f);
-	//	return true;
-	//}
-
-	/*if (playerCollideHorizontal && playerCollideVertical) {
-
-		bool verticalIsClosest = (circleDistance.y < circleDistance.x);
-		if (verticalIsClosest) {
-			playerCollideHorizontal = false;
-		}
-		else {
-			playerCollideVertical = false;
-		}
-	}
-	*/
+	
 	ball.setFillColor(sf::Color::Red);
 	if (playerCollideVertical) {
 		ball.setFillColor(sf::Color::Yellow);
