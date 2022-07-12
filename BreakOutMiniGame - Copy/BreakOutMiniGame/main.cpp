@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include "Tile.h"
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "Main_Fuctions.h"
 #include <algorithm>
@@ -55,18 +56,18 @@ const sf::Color ONE_HIT_COLOR = sf::Color::Red;
 //Player Variables
 bool				m_CurrentInputToWorkWith = false;
 Tile*				m_PlayerTile; 
-const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(25.0f, 10.0f) * scalingFactor;
+const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(55.0f, 10.0f) * scalingFactor;
 //sf::Vector2f		m_PlayerPosition		= sf::Vector2f((WINDOW_WIDTH / 2.0f) - (m_PlayerDimensions.x / 2.0f), WINDOW_HEIGHT * 0.66f);
 sf::Vector2f m_PlayerPosition				= sf::Vector2f(198.798f, 396.0f);
 sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
-float				m_PMovementIncrements	= 0.05f;
+float				m_PMovementIncrements	= 0.09f;
 
 //Ball Variables
 float m_BallRadius = 2.0f * scalingFactor;
 sf::Vector2f m_BallPosition; 
 sf::Vector2f m_BallDirection;
 float m_BallAngle = 315.0f;
-float m_BallSpeed = 0.02f;
+float m_BallSpeed = 0.05f;
 float m_RepellantDistance = m_BallRadius/2.0f;
 
 bool	m_BlockMovementChanges = false;
@@ -100,6 +101,7 @@ bool moveUp = false;
 bool moveDown = false;
 bool moveRight = false;
 bool moveLeft = false;
+
 
 int main()
 {
@@ -251,19 +253,37 @@ bool DoGameLoopCalculations(sf::CircleShape& ball, sf::RectangleShape tileShapes
 
 	}
 
+	sf::Vector2f originalBallDirection = m_BallDirection;
 	sf::Vector2f playerCollisionBounceDirection;
 	sf::Vector2f tileCollisionBounceDirection;
-	bool collisionWithPlayer = CheckForCollisionWithPlayer(m_PlayerPosition, &playerCollisionBounceDirection, ball);
-	bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(tileShapes, gametiles, ball, &tileCollisionBounceDirection);
+	sf::Vector2f* ptrToNewDirectionVector = nullptr;
 
-	//3) move ball
-	if (collisionWithPlayer) {
-		m_BallDirection = playerCollisionBounceDirection;
-	}
+	/*bool futurePathIsClear = false;*/
 
-	if (collisionWithTile) {
-		m_BallDirection = tileCollisionBounceDirection;
-	}
+	/*while (!futurePathIsClear) {*/
+
+		//give direction vector to work with
+		//calculate if player would collide with the given direction vector
+		//if yes, calculate new direction vector
+		//feed new direction vector back into the loop
+		//if the ball wouldn't collide, set new direction to the given vector
+
+		//possible problems:
+		//1) could lead to false collision calculation results if the future ball position check lies too far in the collision area
+
+		bool collisionWithPlayer = CheckForCollisionWithPlayer(m_PlayerPosition, &playerCollisionBounceDirection, ball, ptrToNewDirectionVector);
+		bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(tileShapes, gametiles, ball, &tileCollisionBounceDirection);
+
+		
+		if (collisionWithPlayer) {
+			m_BallDirection = playerCollisionBounceDirection;
+		}
+
+		if (collisionWithTile) {
+			m_BallDirection = tileCollisionBounceDirection;
+		}
+	/*}*/
+	
 
 	
 	m_BallPosition = m_BallPosition + m_BallDirection;
@@ -422,7 +442,7 @@ float clip(float n, float lower, float upper) {
 }
 
 
-bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::CircleShape& ball)
+bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::CircleShape& ball, sf::Vector2f* nextBallPosition)
 {
 	
 	//TODO 
@@ -430,8 +450,11 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	bool playerCollideVertical = false;
 	bool playerCollideHorizontal = false;
 
-	
-	sf::Vector2f futureBallPosition = (m_BallPosition + sf::Vector2f(m_BallRadius, m_BallRadius)) + m_BallDirection;
+	sf::Vector2f futureBallPosition;
+	futureBallPosition = (m_BallPosition + sf::Vector2f(m_BallRadius, m_BallRadius)) + m_BallDirection;
+	if (nextBallPosition != nullptr) {
+ 		futureBallPosition = *nextBallPosition;
+	}
 
 	float testingX = futureBallPosition.x;
 	float testingY = futureBallPosition.y;
@@ -441,12 +464,17 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	float minPlayerY = playerTilePos.y - (m_PlayerDimensions.y / 2.0f);
 	float maxPlayerY = playerTilePos.y + (m_PlayerDimensions.y / 2.0f);
 	
-	//bools to check for section position of the ball
+	//      |
+	//		*-------*
+	//		|       |  rightX
+	//		*-------*
+	//      |
+	//
+	//bools to check for sector position of the ball
 	bool leftX	= false;
 	bool rightX = false;
 	bool upY	= false;
 	bool downY	= false;
-
 
 	if(futureBallPosition.x < minPlayerX){ testingX			= minPlayerX; leftX		= true;}
 	else if(futureBallPosition.x > maxPlayerX){ testingX	= maxPlayerX; rightX	= true;}
@@ -468,7 +496,7 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	bool rightLowerCorner = false;
 
 	if (overallDistance <= m_BallRadius) {
-
+	
 		//test for which section the ball is in 
 		
 
@@ -519,6 +547,7 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	if (playerCollideVertical) {
 		ball.setFillColor(sf::Color::Yellow);
 		*bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
+		CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision);
 		return true;
 	}
 
@@ -528,8 +557,58 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 		return true;
 	}
 
+
+	
+
 	
 	return false;
+}
+
+
+sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type) {
+
+	sf::Vector2f newBallDirectionVector; 
+	float deviationAngle = 5.0f;
+	float leftAngleInRadianX = cos((90.0f + deviationAngle)  * (M_PI / 180.0f));
+	float leftAngleInRadianY = sin((90.0f + deviationAngle)  * (M_PI / 180.0f));
+	float rightAngleInRadianX = cos((90.0f - deviationAngle) * (M_PI / 180.0f));
+	float rightAngleInRadianY = sin((90.0f - deviationAngle) * (M_PI / 180.0f));
+
+	float playerRimPercentage = 0.33f;
+	sf::Vector2f leftRimNormal = sf::Vector2f(leftAngleInRadianX , leftAngleInRadianY);
+	sf::Vector2f rightRimNormal =  sf::Vector2f(rightAngleInRadianX , rightAngleInRadianY);
+	//player collision ball bounce vector calculation based on where on the player it lands
+	//1) where on the player did we land? (percentage areas)
+	if (type == CollisionType::VerticalCollision) {
+		float proportionalXPos = futureBallPosition.x - (m_PlayerPosition.x - (m_PlayerDimensions.x /2.0f));
+		float percentageOnXAxis =proportionalXPos/m_PlayerDimensions.x;
+		if (percentageOnXAxis < playerRimPercentage) {
+			//cos-1 [ (a · b) / (|a| |b|) ]
+			float length = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
+			m_BallDirection.x = m_BallDirection.x /length;
+			m_BallDirection.y = m_BallDirection.y /length;
+
+			float newMagnitude = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
+
+			float ballDirTimesNormal = (m_BallDirection.x * leftRimNormal.x) + (m_BallDirection.y * leftRimNormal.y);
+			float absoluteBallDir = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
+			float absoluteNormal = sqrt((leftRimNormal.x * leftRimNormal.x) + (leftRimNormal.y * leftRimNormal.y));
+			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal/(absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
+			float newVectorAngle = angleBetweenBallDirectionAndNormal * 2.0f;
+			
+			newBallDirectionVector = sf::Vector2f(m_BallDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - m_BallDirection.y * sin(newVectorAngle * (M_PI / 180.0f)),m_BallDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + m_BallDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
+			std::cout<<angleBetweenBallDirectionAndNormal << std::endl;
+		}
+		if (percentageOnXAxis > playerRimPercentage * 2.0f) {
+			std::cout <<"right rim" << std::endl;
+		}
+	}
+
+	//2) calculate the normal for the player area (make it customizable based on initial deviation degree for normal)
+	//3) calculate the angle between the normal and the ball direction vector
+	//4) give new direction vector based on the angle 
+
+	return newBallDirectionVector;
 }
 
 bool CornerCollisionCheck(sf::Vector2f circleDistance) {
@@ -622,13 +701,7 @@ bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes,
 			if (upY || downY) {
 				playerCollideVertical = true;
 			}
-			/*bool verticalIsClosest = (distanceY < distanceX);
-			if (verticalIsClosest) {
-			playerCollideVertical = true;
-			}
-			else {
-			playerCollideHorizontal = true;
-			}*/
+			
 
 		}
 
@@ -657,99 +730,8 @@ bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes,
 		}
 	}
 
-	
-
-
-	
-
-
 	return false;
-	//if (m_BlockMovementChanges) {
-
-	//	if (m_BM_Timer < m_BlockedMovementFrameTime) {
-	//		m_BM_Timer++;
-
-	//		return false;
-	//	}
-	//	if (m_BM_Timer > m_BlockedMovementFrameTime ) {
-	//		m_BlockMovementChanges = false;
-	//		m_BM_Timer = 0;
-	//	}
-	//}
-	//
-
-
-	//for (int i = 0; i < tileArrayLength; i++) {
-
-	//	check for every tile if the ball is colliding with one of its walls 
-
-	//	bool horizontalCollision = false;
-
-	//	bool verticalCollision = false;
-
-	//	bool alive = gametiles[i]->isAlive;
-	//	if (!alive) {
-	//		continue;
-	//	}
-	//	sf::Vector2f currentTilePosition = tileShapes[i].getPosition();
-
-	//	downcollide = if the ball is under the tile, as well as within the width position of the tile, as well as within a certain distance to the tile
-
-	//	if (m_BallPosition.x < (currentTilePosition.x + m_TileDimensions.x)
-	//		&& m_BallPosition.x >(currentTilePosition.x - m_TileDimensions.x)) {
-	//		float distanceOnYAxis_Bottom = (currentTilePosition.y +  m_TileDimensions.y) - m_BallPosition.y;
-	//		float distanceOnYAxis_Top = (currentTilePosition.y - m_TileDimensions.y) - m_BallPosition.y;
-
-	//		 i think i need bounce rules for the top and the bottom separately
-	//		if ((std::abs(distanceOnYAxis_Bottom) < m_RepellantDistance | std::abs(distanceOnYAxis_Top) < m_RepellantDistance) && (distanceOnYAxis_Bottom > 0.0f | distanceOnYAxis_Top < 0.0f)) {
-	//			/*std::cout << distanceOnYAxis_Bottom << ": is distance on bottom" << std::endl;
-	//			std::cout << distanceOnYAxis_Top << ": is distance on top" << std::endl;*/
-
-	//			gametiles[i]->hitCount += 1;
-	//			int currentHitCount = gametiles[i]->hitCount;
-	//			if (currentHitCount >= m_TileHitsAllowed) {
-	//				gametiles[i]->isAlive = false;
-	//			}
-	//			
-	//			verticalCollision = true;
-	//		}
-
-
-	//	}
-
-	//	if (m_BallPosition.y < (currentTilePosition.y + m_TileDimensions.y)
-	//		&& m_BallPosition.x >(currentTilePosition.y - m_TileDimensions.y)) {
-	//		float distanceOnXAxis_Right = (currentTilePosition.y + m_TileDimensions.x) - m_BallPosition.x;
-	//		float distanceOnXAxis_Left = (currentTilePosition.y - m_TileDimensions.x) - m_BallPosition.x;
-
-
-	//		float playerRepellantDistance = 0.5f;
-	//		 i think i need bounce rules for the top and the bottom separately
-	//		if ((std::abs(distanceOnXAxis_Right) < m_RepellantDistance | std::abs(distanceOnXAxis_Left) < m_RepellantDistance) && (distanceOnXAxis_Right > 0.0f | distanceOnXAxis_Left < 0.0f)) {
-	//			/*std::cout << distanceOnXAxis_Right << ": is distance on bottom" << std::endl;
-	//			std::cout << distanceOnXAxis_Left << ": is distance on top" << std::endl;*/
-	//			gametiles[i]->isAlive = false;
-	//			horizontalCollision = true;
-	//		}
-
-
-	//	}
-
-	//	if (horizontalCollision) {
-	//		m_BallDirection = sf::Vector2f(m_BallDirection.x * -1.0f, m_BallDirection.y);
-	//		m_BlockMovementChanges = true;
-	//		return true;
-	//	}
-
-
-	//	if (verticalCollision) {
-	//		m_BallDirection =  sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
-	//		m_BlockMovementChanges = true;
-	//		return true;
-	//	}
-	//	
-	//}
-	//return true;
+	
 }
 
 float lerp(float a, float b, float f)
