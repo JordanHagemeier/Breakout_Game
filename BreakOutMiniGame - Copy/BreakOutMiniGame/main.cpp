@@ -546,8 +546,8 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 	}
 	if (playerCollideVertical) {
 		ball.setFillColor(sf::Color::Yellow);
-		*bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
-		CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision);
+		/**bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);*/
+		*bounceDirection = CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision);
 		return true;
 	}
 
@@ -568,7 +568,7 @@ bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounc
 sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type) {
 
 	sf::Vector2f newBallDirectionVector; 
-	float deviationAngle = 5.0f;
+	float deviationAngle = 1.0f;
 	float leftAngleInRadianX = cos((90.0f + deviationAngle)  * (M_PI / 180.0f));
 	float leftAngleInRadianY = sin((90.0f + deviationAngle)  * (M_PI / 180.0f));
 	float rightAngleInRadianX = cos((90.0f - deviationAngle) * (M_PI / 180.0f));
@@ -584,23 +584,29 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 		float percentageOnXAxis =proportionalXPos/m_PlayerDimensions.x;
 		if (percentageOnXAxis < playerRimPercentage) {
 			//cos-1 [ (a · b) / (|a| |b|) ]
-			float length = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
-			m_BallDirection.x = m_BallDirection.x /length;
-			m_BallDirection.y = m_BallDirection.y /length;
-
-			float newMagnitude = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
-
+			
 			float ballDirTimesNormal = (m_BallDirection.x * leftRimNormal.x) + (m_BallDirection.y * leftRimNormal.y);
 			float absoluteBallDir = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
 			float absoluteNormal = sqrt((leftRimNormal.x * leftRimNormal.x) + (leftRimNormal.y * leftRimNormal.y));
 			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal/(absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
-			float newVectorAngle = angleBetweenBallDirectionAndNormal * 2.0f;
+			float newVectorAngle = angleBetweenBallDirectionAndNormal * -2.0f;
 			
 			newBallDirectionVector = sf::Vector2f(m_BallDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - m_BallDirection.y * sin(newVectorAngle * (M_PI / 180.0f)),m_BallDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + m_BallDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
-			std::cout<<angleBetweenBallDirectionAndNormal << std::endl;
+			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
 		}
 		if (percentageOnXAxis > playerRimPercentage * 2.0f) {
-			std::cout <<"right rim" << std::endl;
+
+			float ballDirTimesNormal = (m_BallDirection.x * rightRimNormal.x) + (m_BallDirection.y * rightRimNormal.y);
+			float absoluteBallDir = sqrt((m_BallDirection.x * m_BallDirection.x) + (m_BallDirection.y * m_BallDirection.y));
+			float absoluteNormal = sqrt((rightRimNormal.x * rightRimNormal.x) + (rightRimNormal.y * rightRimNormal.y));
+			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal / (absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
+			float newVectorAngle = angleBetweenBallDirectionAndNormal * -2.0f;
+
+			newBallDirectionVector = sf::Vector2f(m_BallDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - m_BallDirection.y * sin(newVectorAngle * (M_PI / 180.0f)),m_BallDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + m_BallDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
+			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
+		}
+		else {
+			newBallDirectionVector = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);
 		}
 	}
 
