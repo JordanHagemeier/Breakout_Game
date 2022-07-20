@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include  "Ball.h"
 enum CollisionType {
 	VerticalCollision,
 	HorizontalCollision,
@@ -7,18 +8,22 @@ enum CollisionType {
 	Count
 };
 
+
+const float scalingFactor = 5.0f;
+
+
 sf::Vector2f Get2DPositionWithIndex(int index);
 bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength);
-bool CheckForInput();
+bool CheckForInput(Ball& ball);
 float clip(float n, float lower, float upper);
-bool CheckForCollisionWithPlayer(sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::CircleShape& ball,  sf::Vector2f* nextBallPosition);
-bool CheckForBallTileCollisionAndMovementChanges(sf::RectangleShape* tileShapes, Tile** gametiles, sf::CircleShape& ball, sf::Vector2f* bounceDirection);
+bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition);
+bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape* tileShapes, Tile** gametiles, sf::Vector2f* bounceDirection);
 float lerp(float a, float b, float f);
-bool VerticalCollisionCheck(sf::Vector2f circleDistance);
-bool HorizontalCollisionCheck(sf::Vector2f circleDistance);
-bool CornerCollisionCheck(sf::Vector2f circleDistance);
-bool RenderGameData(sf::RenderWindow& window, sf::CircleShape& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]);
+bool VerticalCollisionCheck(sf::Vector2f circleDistance, Ball& ball);
+bool HorizontalCollisionCheck(sf::Vector2f circleDistance, Ball& ball);
+bool CornerCollisionCheck(sf::Vector2f circleDistance, Ball& ball);
+bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]);
 bool SetUpInputCountingSystem();
-bool DoGameLoopCalculations(sf::CircleShape& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]);
-bool MoveBallThroughInput(sf::CircleShape& ball);
-sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type);
+bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]);
+bool MoveBallThroughInput(Ball& ball);
+sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Ball& ball);
