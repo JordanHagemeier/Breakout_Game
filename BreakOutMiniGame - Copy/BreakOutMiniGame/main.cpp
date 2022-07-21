@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <chrono>
 #include "Ball.h"
+#include <list>
 
 
 
@@ -103,6 +104,8 @@ bool moveDown = false;
 bool moveRight = false;
 bool moveLeft = false;
 
+std::list<Ball*> Balls_In_Game;
+
 
 int main()
 {
@@ -141,14 +144,16 @@ int main()
 	m_PlayerTile->position = m_PlayerPosition;
 	
 	//create ball
-	sf::CircleShape ball_Visual;
+	sf::CircleShape ball_Visual = sf::CircleShape(0.0f);
 	Ball ball = Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, 0.05f, scalingFactor, ball_Visual);
-	ball_Visual.setRadius(ball.m_BallRadius);
-	ball.m_BallPosition = m_BallStarterPosition_UNALTERED;
-	ball_Visual.setFillColor(sf::Color::Red);
-	ball_Visual.setPosition(ball.m_BallPosition);
-	ball.m_BallDirection = sf::Vector2f(std::cos(ball.m_BallAngle) * ball.m_BallSpeed, std::sin(ball.m_BallAngle) * ball.m_BallSpeed);
+	ball.ballPosition = m_BallStarterPosition_UNALTERED;
+	ball.ballDirection = sf::Vector2f(std::cos(ball.ballAngle) * ball.ballSpeed, std::sin(ball.ballAngle) * ball.ballSpeed);
+	ball.ballVisual->setRadius(ball.ballRadius);
+	ball.ballVisual->setFillColor(sf::Color::Red);
+	ball.ballVisual->setPosition(ball.ballPosition);
 
+	Balls_In_Game = std::list<Ball*>();
+	Balls_In_Game.push_back(&ball);
 
 	//setup input arrays
 	SetUpInputCountingSystem();
@@ -204,18 +209,18 @@ bool MoveBallThroughInput(Ball& ball) {
 
 	bool inputGiven = false;
 
-	sf::Vector2f oldDirection = ball.m_BallDirection;
-	if (moveUp)		{ball.m_BallDirection = sf::Vector2f(0.0f, -1.0f);		moveUp    = false; inputGiven = true; }
-	if (moveDown)	{ball.m_BallDirection = sf::Vector2f(0.0f, 1.0f);		moveDown  = false; inputGiven = true;}
-	if (moveLeft)	{ball.m_BallDirection = sf::Vector2f(-1.0f, 0.0f);	moveLeft  = false; inputGiven = true;}
-	if (moveRight)	{ball.m_BallDirection = sf::Vector2f(1.0f, 0.0f);	moveRight = false; inputGiven = true;}
+	sf::Vector2f oldDirection = ball.ballDirection;
+	if (moveUp)		{ball.ballDirection = sf::Vector2f(0.0f, -1.0f);		moveUp    = false; inputGiven = true; }
+	if (moveDown)	{ball.ballDirection = sf::Vector2f(0.0f, 1.0f);		moveDown  = false; inputGiven = true;}
+	if (moveLeft)	{ball.ballDirection = sf::Vector2f(-1.0f, 0.0f);	moveLeft  = false; inputGiven = true;}
+	if (moveRight)	{ball.ballDirection = sf::Vector2f(1.0f, 0.0f);	moveRight = false; inputGiven = true;}
 
 	if (inputGiven) {
-		ball.m_BallPosition = ball.m_BallPosition + (ball.m_BallDirection * 2.0f);
-		ball.ball_Visual->setPosition(ball.m_BallPosition);
+		ball.ballPosition = ball.ballPosition + (ball.ballDirection * 2.0f);
+		ball.ballVisual->setPosition(ball.ballPosition);
 	}
 	
-	ball.m_BallDirection = oldDirection;
+	ball.ballDirection = oldDirection;
 	return true;
 	
 }
@@ -239,24 +244,24 @@ bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* g
 	}
 	//Update Ball 
 	//0) check if ball is colliding with walls
-	float wallDistanceXMin = ball.m_BallPosition.x;
-	float wallDistanceXMax = std::abs(WINDOW_WIDTH - ball.m_BallPosition.x);
+	float wallDistanceXMin = ball.ballPosition.x;
+	float wallDistanceXMax = std::abs(WINDOW_WIDTH - ball.ballPosition.x);
 
-	if (wallDistanceXMin < ball.m_RepellantDistance || wallDistanceXMax < ball.m_RepellantDistance) {
+	if (wallDistanceXMin < ball.repellantDistance || wallDistanceXMax < ball.repellantDistance) {
 		std::cout << "Wall Collide!" << std::endl;
-		ball.m_BallDirection = sf::Vector2f(ball.m_BallDirection.x * -1.0f, ball.m_BallDirection.y);
+		ball.ballDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
 	}
 
-	float wallDistanceYMin = ball.m_BallPosition.y;
-	float wallDistanceYMax = std::abs(WINDOW_HEIGHT - ball.m_BallPosition.y);
+	float wallDistanceYMin = ball.ballPosition.y;
+	float wallDistanceYMax = std::abs(WINDOW_HEIGHT - ball.ballPosition.y);
 
-	if (wallDistanceYMin < ball.m_RepellantDistance || wallDistanceYMax < ball.m_RepellantDistance) {
+	if (wallDistanceYMin < ball.repellantDistance || wallDistanceYMax < ball.repellantDistance) {
 		std::cout << "Wall Collide!" << std::endl;
-		ball.m_BallDirection = sf::Vector2f(ball.m_BallDirection.x, ball.m_BallDirection.y* -1.0f);
+		ball.ballDirection = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
 
 	}
 
-	sf::Vector2f originalBallDirection = ball.m_BallDirection;
+	sf::Vector2f originalBallDirection = ball.ballDirection;
 	sf::Vector2f playerCollisionBounceDirection;
 	sf::Vector2f tileCollisionBounceDirection;
 	sf::Vector2f* ptrToNewDirectionVector = nullptr;
@@ -279,18 +284,18 @@ bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* g
 
 		
 		if (collisionWithPlayer) {
-			ball.m_BallDirection = playerCollisionBounceDirection;
+			ball.ballDirection = playerCollisionBounceDirection;
 		}
 
 		if (collisionWithTile) {
-			ball.m_BallDirection = tileCollisionBounceDirection;
+			ball.ballDirection = tileCollisionBounceDirection;
 		}
 	/*}*/
 	
 
 	
-	ball.m_BallPosition = ball.m_BallPosition + ball.m_BallDirection;
-	ball.ball_Visual->setPosition(ball.m_BallPosition);
+	ball.ballPosition = ball.ballPosition + ball.ballDirection;
+	ball.ballVisual->setPosition(ball.ballPosition);
 
 	return true;
 }
@@ -328,8 +333,11 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 	window.draw(playerTile);
 
 
+	ball.ballVisual->setPosition(ball.ballPosition);
+
+
 	//draw ball
-	window.draw(*ball.ball_Visual);
+	window.draw(*ball.ballVisual);
 
 	window.display();
 
@@ -389,7 +397,7 @@ bool CheckForInput(Ball& ball) {
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::P) && inputAllowed[0]) {
 		
-		std::cout <<"Ball Pos:" << ball.m_BallPosition.x <<" ," << ball.m_BallPosition.y <<std::endl;
+		std::cout <<"Ball Pos:" << ball.ballPosition.x <<" ," << ball.ballPosition.y <<std::endl;
 		inputAllowed[0] = false;
 	}
 
@@ -454,7 +462,7 @@ bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vec
 	bool playerCollideHorizontal = false;
 
 	sf::Vector2f futureBallPosition;
-	futureBallPosition = (ball.m_BallPosition + sf::Vector2f(ball.m_BallRadius, ball.m_BallRadius)) + ball.m_BallDirection;
+	futureBallPosition = (ball.ballPosition + sf::Vector2f(ball.ballRadius, ball.ballRadius)) + ball.ballDirection;
 	if (nextBallPosition != nullptr) {
  		futureBallPosition = *nextBallPosition;
 	}
@@ -498,7 +506,7 @@ bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vec
 	bool leftLowerCorner = false;
 	bool rightLowerCorner = false;
 
-	if (overallDistance <= ball.m_BallRadius) {
+	if (overallDistance <= ball.ballRadius) {
 	
 		//test for which section the ball is in 
 		
@@ -541,22 +549,22 @@ bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vec
 	}
 
 	
-	ball.ball_Visual->setFillColor(sf::Color::Red);
+	ball.ballVisual->setFillColor(sf::Color::Red);
 
 	if (cornerWasHit) {
-		*bounceDirection = sf::Vector2f(ball.m_BallDirection.x * -1.0f, ball.m_BallDirection.y* -1.0f);
+		*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y* -1.0f);
 		return true;
 	}
 	if (playerCollideVertical) {
-		ball.ball_Visual->setFillColor(sf::Color::Yellow);
+		ball.ballVisual->setFillColor(sf::Color::Yellow);
 		/**bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);*/
 		*bounceDirection = CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision, ball);
 		return true;
 	}
 
 	if (playerCollideHorizontal) {
-		ball.ball_Visual->setFillColor(sf::Color::Magenta);
-		*bounceDirection = sf::Vector2f(ball.m_BallDirection.x * -1.0f, ball.m_BallDirection.y);
+		ball.ballVisual->setFillColor(sf::Color::Magenta);
+		*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
 		return true;
 	}
 
@@ -588,28 +596,28 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 		if (percentageOnXAxis < playerRimPercentage) {
 			//cos-1 [ (a · b) / (|a| |b|) ]
 			
-			float ballDirTimesNormal = (ball.m_BallDirection.x * leftRimNormal.x) + (ball.m_BallDirection.y * leftRimNormal.y);
-			float absoluteBallDir = sqrt((ball.m_BallDirection.x * ball.m_BallDirection.x) + (ball.m_BallDirection.y * ball.m_BallDirection.y));
+			float ballDirTimesNormal = (ball.ballDirection.x * leftRimNormal.x) + (ball.ballDirection.y * leftRimNormal.y);
+			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
 			float absoluteNormal = sqrt((leftRimNormal.x * leftRimNormal.x) + (leftRimNormal.y * leftRimNormal.y));
 			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal/(absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
 			float newVectorAngle = angleBetweenBallDirectionAndNormal * -2.0f;
 			
-			newBallDirectionVector = sf::Vector2f(ball.m_BallDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.m_BallDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.m_BallDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.m_BallDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
+			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
 			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
 		}
 		if (percentageOnXAxis > playerRimPercentage * 2.0f) {
 
-			float ballDirTimesNormal = (ball.m_BallDirection.x * rightRimNormal.x) + (ball.m_BallDirection.y * rightRimNormal.y);
-			float absoluteBallDir = sqrt((ball.m_BallDirection.x * ball.m_BallDirection.x) + (ball.m_BallDirection.y * ball.m_BallDirection.y));
+			float ballDirTimesNormal = (ball.ballDirection.x * rightRimNormal.x) + (ball.ballDirection.y * rightRimNormal.y);
+			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
 			float absoluteNormal = sqrt((rightRimNormal.x * rightRimNormal.x) + (rightRimNormal.y * rightRimNormal.y));
 			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal / (absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
 			float newVectorAngle = angleBetweenBallDirectionAndNormal * -2.0f;
 
-			newBallDirectionVector = sf::Vector2f(ball.m_BallDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.m_BallDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.m_BallDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.m_BallDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
+			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
 			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
 		}
 		else {
-			newBallDirectionVector = sf::Vector2f(ball.m_BallDirection.x, ball.m_BallDirection.y* -1.0f);
+			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
 		}
 	}
 
@@ -621,20 +629,20 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 }
 
 bool CornerCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.m_BallRadius)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.m_BallRadius)) { return false; }
+	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.ballRadius)) { return false; }
+	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.ballRadius)) { return false; }
 	
 	float cornerDistance_sq = ((circleDistance.x - m_PlayerDimensions.x / 2) * (circleDistance.x - m_PlayerDimensions.x / 2)) +
 		((circleDistance.y - m_PlayerDimensions.y / 2) * (circleDistance.y - m_PlayerDimensions.y / 2));
 
-	if ((cornerDistance_sq <= (ball.m_BallRadius * ball.m_BallRadius))) { return true; }
+	if ((cornerDistance_sq <= (ball.ballRadius * ball.ballRadius))) { return true; }
 	return false;
 }
 bool VerticalCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.m_BallRadius)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.m_BallRadius)) { return false;}
+	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.ballRadius)) { return false; }
+	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.ballRadius)) { return false;}
 	/*if (circleDistance.x < (m_PlayerDimensions.x / 2 + m_BallDiametre)) {*/
-		if (circleDistance.y <= ((m_PlayerDimensions.y / 2) + ball.m_BallRadius)) { return true; }
+		if (circleDistance.y <= ((m_PlayerDimensions.y / 2) + ball.ballRadius)) { return true; }
 	/*}*/
 	
 	return false;
@@ -642,12 +650,12 @@ bool VerticalCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
 }
 
 bool HorizontalCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.m_BallRadius)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.m_BallRadius)) { return false; }
+	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.ballRadius)) { return false; }
+	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.ballRadius)) { return false; }
 
 	/*if (circleDistance.y < (m_PlayerDimensions.y / 2 + m_BallDiametre))
 	{*/
-		if (circleDistance.x <= (m_PlayerDimensions.x / 2) + ball.m_BallRadius) { return true;}
+		if (circleDistance.x <= (m_PlayerDimensions.x / 2) + ball.ballRadius) { return true;}
 	/*}*/
 	
 	return false;
@@ -661,7 +669,7 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 	bool playerCollideHorizontal = false;
 
 
-	sf::Vector2f futureBallPosition = (ball.m_BallPosition + sf::Vector2f(ball.m_BallRadius, ball.m_BallRadius)) + ball.m_BallDirection;
+	sf::Vector2f futureBallPosition = (ball.ballPosition + sf::Vector2f(ball.ballRadius, ball.ballRadius)) + ball.ballDirection;
 
 	
 
@@ -699,7 +707,7 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 		//code here
 
 
-		if (overallDistance <= ball.m_BallRadius) {
+		if (overallDistance <= ball.ballRadius) {
 
 			//test for which section the ball is in 
 
@@ -715,10 +723,10 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 		}
 
 
-		ball.ball_Visual->setFillColor(sf::Color::Red);
+		ball.ballVisual->setFillColor(sf::Color::Red);
 		if (playerCollideVertical) {
-			ball.ball_Visual->setFillColor(sf::Color::Yellow);
-			*bounceDirection = sf::Vector2f(ball.m_BallDirection.x, ball.m_BallDirection.y* -1.0f);
+			ball.ballVisual->setFillColor(sf::Color::Yellow);
+			*bounceDirection = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
 			gametiles[i]->hitCount += 1;
 			int currentHitCount = gametiles[i]->hitCount;
 			if (currentHitCount >= m_TileHitsAllowed) {
@@ -728,8 +736,8 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 		}
 
 		if (playerCollideHorizontal) {
-			ball.ball_Visual->setFillColor(sf::Color::Magenta);
-			*bounceDirection = sf::Vector2f(ball.m_BallDirection.x * -1.0f, ball.m_BallDirection.y);
+			ball.ballVisual->setFillColor(sf::Color::Magenta);
+			*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
 			gametiles[i]->hitCount += 1;
 			int currentHitCount = gametiles[i]->hitCount;
 			if (currentHitCount >= m_TileHitsAllowed) {

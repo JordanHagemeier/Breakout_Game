@@ -9,7 +9,7 @@ enum CollisionType {
 };
 
 
-const float scalingFactor = 5.0f;
+const float scalingFactor = 3.0f;
 
 
 sf::Vector2f Get2DPositionWithIndex(int index);

@@ -5,23 +5,24 @@
 
 class Ball {
 	public:
-		sf::CircleShape* ball_Visual;
-		float m_BallRadius;
-		sf::Vector2f m_BallPosition;
-		sf::Vector2f m_BallDirection;
-		float m_BallAngle;
-		float m_BallSpeed;
-		float m_RepellantDistance = m_BallRadius / 2.0f;
+		sf::CircleShape* ballVisual;
+		float ballRadius;
+		sf::Vector2f ballPosition;
+		sf::Vector2f ballDirection;
+		float ballAngle;
+		float ballSpeed;
+		float repellantDistance = ballRadius / 2.0f;
 
 		Ball(float scalingFactor) {
-			m_BallRadius = 2.0f * scalingFactor;
+			ballRadius = 2.0f * scalingFactor;
 		}
-		Ball(float radius, sf::Vector2f pos, float angle, float speed, float scalingFactor, sf::CircleShape visual) {
-			m_BallRadius = radius;
-			m_BallPosition = pos;
-			m_BallAngle = angle;
-			m_BallSpeed = speed;
-			ball_Visual = &visual;
+		Ball(float radius, sf::Vector2f pos, float angle, float speed, float scalingFactor, sf::CircleShape& visual) {
+			ballRadius = radius;
+			ballPosition = pos;
+			ballAngle = angle;
+			ballSpeed = speed;
+			ballVisual = &visual;
+			repellantDistance = ballRadius / 2.0f;
 		}
 		
 
