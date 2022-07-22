@@ -8,6 +8,7 @@
 #include <chrono>
 #include "Ball.h"
 #include <list>
+#include <random>
 
 
 
@@ -118,10 +119,12 @@ int main()
 	shape.setFillColor(sf::Color::Green);
 	shape.setPosition((WINDOW_WIDTH/2.0f)-10.0f, (WINDOW_HEIGHT/2.0f)-10.0f);
 
+	
 	Tile* gametiles[tileArrayLength];
 	FillTileArrayWithData(gametiles, tileArrayLength);
 
 	sf::RectangleShape tileShapes[tileArrayLength];
+
 
 	
 	for (int i = 0; i < tileArrayLength; i++) {
@@ -129,8 +132,11 @@ int main()
 		sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f* outlineThickness,2.0f* outlineThickness);
 		sf::Vector2<float> position = sf::Vector2<float>((gametiles[i]->position.x * (WINDOW_WIDTH/WINDOW_SEGMENTS_WIDTH)) + outlineThickness + (m_TileDimensions.x /2.0f), gametiles[i]->position.y * (WINDOW_HEIGHT/WINDOW_SEGMENTS_HEIGHT)/3.0f + (m_TileDimensions.y /2.0f));
 		sf::RectangleShape rect(size);
+
+		
+		
 		rect.setOrigin(m_TileDimensions.x/2.0f, m_TileDimensions.y/2.0f);
-		rect.setFillColor(NO_HIT_COLOR);
+		rect.setFillColor(gametiles[i]->color);
 		rect.setOutlineColor(sf::Color::White);
 		rect.setOutlineThickness(outlineThickness);
 		rect.setPosition(position);
@@ -311,9 +317,9 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 	for (int j = 0; j < tileArrayLength; j++) {
 		sf::RectangleShape currentTile = tileShapes[j];
 		float currentHitPercentage = (float)gametiles[j]->hitCount / m_TileHitsAllowed;
-		sf::Uint8 redPercentage = lerp(m_NoHitColor.r, m_FinalHitColor.r, currentHitPercentage);
-		sf::Uint8 greenPercentage = lerp(m_NoHitColor.g, m_FinalHitColor.g, currentHitPercentage);
-		sf::Uint8 bluePercentage = lerp(m_NoHitColor.b, m_FinalHitColor.b, currentHitPercentage);
+		sf::Uint8 redPercentage = lerp(gametiles[j]->color.r, m_FinalHitColor.r, currentHitPercentage);
+		sf::Uint8 greenPercentage = lerp(gametiles[j]->color.g, m_FinalHitColor.g, currentHitPercentage);
+		sf::Uint8 bluePercentage = lerp(gametiles[j]->color.b, m_FinalHitColor.b, currentHitPercentage);
 		sf::Uint8 alphaPercentage = 255;
 
 		sf::Color color = sf::Color(redPercentage, greenPercentage, bluePercentage, alphaPercentage);
@@ -344,11 +350,55 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 	return true;
 }
 bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
+
+
+	sf::Color muddyTurquoise;
+	muddyTurquoise.r = 32;
+	muddyTurquoise.g = 107;
+	muddyTurquoise.b = 89;
+	muddyTurquoise.a = 255;
+
+	sf::Color grassGreen;
+	grassGreen.r = 164;
+	grassGreen.g = 200;
+	grassGreen.b = 102;
+	grassGreen.a = 255;
+
+	sf::Color racingRed;
+	racingRed.r = 235;
+	racingRed.g = 73;
+	racingRed.b = 22;
+	racingRed.a = 255;
+
+
+	std::map<TileType, sf::Color> tileTypeToColor;
+	tileTypeToColor[TileType::AddedBall]		= grassGreen;
+	tileTypeToColor[TileType::QuickerPlayer]	= racingRed;
+	tileTypeToColor[TileType::NoEvent]			= muddyTurquoise;
+
+	//get tile type by chance
+	std::random_device rd; // obtain a random number from hardware
+	std::mt19937 gen(rd()); // seed the generator
+	std::uniform_int_distribution<> distr(0, 100); // define the range
+	
+	
+	
 	for (int i = 0; i < tileArrayLength; i++) {
 		Tile* tile = new Tile;
 		sf::Vector2f newPos = Get2DPositionWithIndex(i);
 		tile->position = newPos;
 		tiles[i] = tile;
+		float randomNumber = distr(gen) / 100.0f;
+		if (randomNumber < 0.2f) {
+			tile->tileType = TileType::AddedBall;
+		}
+		else if (randomNumber >= 0.7f) {
+			tile->tileType = TileType::QuickerPlayer;
+		}
+		else {
+			tile->tileType = TileType::NoEvent;
+		}
+		tile->color = tileTypeToColor[tile->tileType];
 		/*if (i % 2 == 0) {
 			tile->isAlive = false;
 		}*/

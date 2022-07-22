@@ -5,7 +5,7 @@ enum CollisionType {
 	VerticalCollision,
 	HorizontalCollision,
 	CornerCollision,
-	Count
+	ColCount
 };
 
 
