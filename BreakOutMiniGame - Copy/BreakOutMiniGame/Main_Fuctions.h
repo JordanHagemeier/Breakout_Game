@@ -14,7 +14,7 @@ const float scalingFactor = 3.0f;
 
 sf::Vector2f Get2DPositionWithIndex(int index);
 bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength);
-bool CheckForInput(Ball& ball);
+bool CheckForInput(Ball& ball, sf::RectangleShape tileShapes[], Tile* gameTiles[], sf::RenderWindow& window);
 float clip(float n, float lower, float upper);
 bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition);
 bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape* tileShapes, Tile** gametiles, sf::Vector2f* bounceDirection);
@@ -27,3 +27,5 @@ bool SetUpInputCountingSystem();
 bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]);
 bool MoveBallThroughInput(Ball& ball);
 sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Ball& ball);
+bool DropTileEffect(Tile& tile, sf::RectangleShape* drawnTile);
+bool DrawTileEffects(sf::RenderWindow& window);

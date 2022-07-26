@@ -61,9 +61,10 @@ bool				m_CurrentInputToWorkWith = false;
 Tile*				m_PlayerTile; 
 const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(55.0f, 10.0f) * scalingFactor;
 //sf::Vector2f		m_PlayerPosition		= sf::Vector2f((WINDOW_WIDTH / 2.0f) - (m_PlayerDimensions.x / 2.0f), WINDOW_HEIGHT * 0.66f);
-sf::Vector2f m_PlayerPosition				= sf::Vector2f(198.798f, 396.0f);
+sf::Vector2f		m_PlayerPosition		= sf::Vector2f(198.798f, 396.0f);
 sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 float				m_PMovementIncrements	= 0.09f;
+float				m_PlayerRimPercentage	= 0.1f;
 
 //Ball Variables
 //float m_BallRadius = 2.0f * scalingFactor;
@@ -106,10 +107,36 @@ bool moveRight = false;
 bool moveLeft = false;
 
 std::list<Ball*> Balls_In_Game;
-
+std::vector<DroppingEffect> m_DroppingEffects;
+std::map<TileType, sf::Color> tileTypeToColor;
 
 int main()
 {
+	//Tile Color Setup
+	m_DroppingEffects = std::vector<DroppingEffect>();
+
+	sf::Color muddyTurquoise;
+	muddyTurquoise.r = 32;
+	muddyTurquoise.g = 107;
+	muddyTurquoise.b = 89;
+	muddyTurquoise.a = 255;
+
+	sf::Color grassGreen;
+	grassGreen.r = 164;
+	grassGreen.g = 200;
+	grassGreen.b = 102;
+	grassGreen.a = 255;
+
+	sf::Color racingRed;
+	racingRed.r = 235;
+	racingRed.g = 73;
+	racingRed.b = 22;
+	racingRed.a = 255;
+
+
+	tileTypeToColor[TileType::AddedBall] = grassGreen;
+	tileTypeToColor[TileType::QuickerPlayer] = racingRed;
+	tileTypeToColor[TileType::NoEvent] = muddyTurquoise;
 
 	m_NoHitColor = sf::Color::Blue;
 	m_FinalHitColor = sf::Color::Red;
@@ -186,7 +213,7 @@ int main()
 		//Check for Input
 		if (!m_CurrentInputToWorkWith)
 		{
-			m_CurrentInputToWorkWith = CheckForInput(ball);
+			m_CurrentInputToWorkWith = CheckForInput(ball, tileShapes, gametiles, window);
 		}
 
 		if (m_CalculateOneFrame) {
@@ -316,7 +343,7 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 	//draw tiles
 	for (int j = 0; j < tileArrayLength; j++) {
 		sf::RectangleShape currentTile = tileShapes[j];
-		float currentHitPercentage = (float)gametiles[j]->hitCount / m_TileHitsAllowed;
+		float currentHitPercentage = 1.0f - (float)gametiles[j]->hitCount / gametiles[j]->allowedHits;
 		sf::Uint8 redPercentage = lerp(gametiles[j]->color.r, m_FinalHitColor.r, currentHitPercentage);
 		sf::Uint8 greenPercentage = lerp(gametiles[j]->color.g, m_FinalHitColor.g, currentHitPercentage);
 		sf::Uint8 bluePercentage = lerp(gametiles[j]->color.b, m_FinalHitColor.b, currentHitPercentage);
@@ -328,18 +355,41 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 			window.draw(currentTile);
 		}
 	}
+	//draw tile effects which are falling down
+	DrawTileEffects(window);
 
 	//draw player tile
-	sf::RectangleShape playerTile = sf::RectangleShape(m_PlayerDimensions);
-	playerTile.setOrigin(sf::Vector2f(m_PlayerDimensions.x/2.0f, m_PlayerDimensions.y/2.0f));
-	sf::Vector2f drawingPos = sf::Vector2f(m_PlayerPosition.x , m_PlayerPosition.y );
-	playerTile.setPosition(drawingPos);
-	playerTile.setFillColor(sf::Color::Green);
-	playerTile.setOutlineColor(sf::Color::Yellow);
-	window.draw(playerTile);
+	sf::RectangleShape playerTileMiddle			= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * (1.0f - m_PlayerRimPercentage), m_PlayerDimensions.y));
+	sf::RectangleShape playerTileLeft		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * m_PlayerRimPercentage, m_PlayerDimensions.y));
+	sf::RectangleShape playerTileRight		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * m_PlayerRimPercentage, m_PlayerDimensions.y));
+
+
+	playerTileMiddle.setOrigin(sf::Vector2f(m_PlayerDimensions.x/2.0f, m_PlayerDimensions.y/2.0f));
+	playerTileLeft.setOrigin(sf::Vector2f((m_PlayerDimensions.x/2.0f), m_PlayerDimensions.y/2.0f));
+	playerTileRight.setOrigin(sf::Vector2f((m_PlayerDimensions.x/2.0f), m_PlayerDimensions.y/2.0f));
+	/*playerTileLeft.setOrigin(sf::Vector2f((m_PlayerDimensions.x / 2.0f) * m_PlayerRimPercentage, m_PlayerDimensions.y / 2.0f));
+	playerTileRight.setOrigin(sf::Vector2f((m_PlayerDimensions.x / 2.0f) + ((m_PlayerDimensions.x / 2.0f) * m_PlayerRimPercentage), m_PlayerDimensions.y / 2.0f));*/
+
+	
+
+	sf::Vector2f drawingPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * (m_PlayerRimPercentage)), m_PlayerPosition.y);
+	sf::Vector2f leftPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * (1.0f - m_PlayerRimPercentage)), m_PlayerPosition.y);
+	sf::Vector2f rightPos = sf::Vector2f(m_PlayerPosition.x, m_PlayerPosition.y);
+	playerTileMiddle.setPosition(drawingPos);
+	playerTileLeft.setPosition(leftPos);
+	playerTileRight.setPosition(rightPos);
+
+	playerTileMiddle.setFillColor(sf::Color::Green);
+	playerTileLeft.setFillColor(sf::Color::Red);
+	playerTileRight.setFillColor(sf::Color::Blue);
+	playerTileMiddle.setOutlineColor(sf::Color::Yellow);
+	window.draw(playerTileMiddle);
+	window.draw(playerTileLeft);
+	window.draw(playerTileRight);
 
 
 	ball.ballVisual->setPosition(ball.ballPosition);
+
 
 
 	//draw ball
@@ -352,30 +402,7 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
 
 
-	sf::Color muddyTurquoise;
-	muddyTurquoise.r = 32;
-	muddyTurquoise.g = 107;
-	muddyTurquoise.b = 89;
-	muddyTurquoise.a = 255;
-
-	sf::Color grassGreen;
-	grassGreen.r = 164;
-	grassGreen.g = 200;
-	grassGreen.b = 102;
-	grassGreen.a = 255;
-
-	sf::Color racingRed;
-	racingRed.r = 235;
-	racingRed.g = 73;
-	racingRed.b = 22;
-	racingRed.a = 255;
-
-
-	std::map<TileType, sf::Color> tileTypeToColor;
-	tileTypeToColor[TileType::AddedBall]		= grassGreen;
-	tileTypeToColor[TileType::QuickerPlayer]	= racingRed;
-	tileTypeToColor[TileType::NoEvent]			= muddyTurquoise;
-
+	
 	//get tile type by chance
 	std::random_device rd; // obtain a random number from hardware
 	std::mt19937 gen(rd()); // seed the generator
@@ -384,24 +411,22 @@ bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
 	
 	
 	for (int i = 0; i < tileArrayLength; i++) {
-		Tile* tile = new Tile;
+		
 		sf::Vector2f newPos = Get2DPositionWithIndex(i);
-		tile->position = newPos;
-		tiles[i] = tile;
+		TileType newType = TileType::TileTCount;
 		float randomNumber = distr(gen) / 100.0f;
 		if (randomNumber < 0.2f) {
-			tile->tileType = TileType::AddedBall;
+			newType = TileType::AddedBall;
 		}
 		else if (randomNumber >= 0.7f) {
-			tile->tileType = TileType::QuickerPlayer;
+			newType = TileType::QuickerPlayer;
 		}
 		else {
-			tile->tileType = TileType::NoEvent;
+			newType = TileType::NoEvent;
 		}
-		tile->color = tileTypeToColor[tile->tileType];
-		/*if (i % 2 == 0) {
-			tile->isAlive = false;
-		}*/
+		Tile* tile = new Tile(newPos, newType, tileTypeToColor[newType]);
+		tiles[i] = tile;
+		
 		
 	}
 	return true;
@@ -415,7 +440,7 @@ sf::Vector2f Get2DPositionWithIndex(int index) {
 	return position;
 }
 
-bool CheckForInput(Ball& ball) {
+bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[], sf::RenderWindow& window) {
 
 	//check all bools for progession
 
@@ -467,6 +492,13 @@ bool CheckForInput(Ball& ball) {
 		m_CalculateOneFrame = true;
 		
 		inputAllowed[2] = false;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::T) && inputAllowed[8]) {
+		DropTileEffect(*gameTiles[10], &tileShapes[10]);
+		DrawTileEffects(window);
+
+		inputAllowed[8] = false;
 	}
 
 	if (m_PauseGame) {
@@ -635,7 +667,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 	float rightAngleInRadianX = cos((90.0f - deviationAngle) * (M_PI / 180.0f));
 	float rightAngleInRadianY = sin((90.0f - deviationAngle) * (M_PI / 180.0f));
 
-	float playerRimPercentage = 0.33f;
+	
 	sf::Vector2f leftRimNormal = sf::Vector2f(leftAngleInRadianX , leftAngleInRadianY);
 	sf::Vector2f rightRimNormal =  sf::Vector2f(rightAngleInRadianX , rightAngleInRadianY);
 	//player collision ball bounce vector calculation based on where on the player it lands
@@ -643,7 +675,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 	if (type == CollisionType::VerticalCollision) {
 		float proportionalXPos = futureBallPosition.x - (m_PlayerPosition.x - (m_PlayerDimensions.x /2.0f));
 		float percentageOnXAxis =proportionalXPos/m_PlayerDimensions.x;
-		if (percentageOnXAxis < playerRimPercentage) {
+		if (percentageOnXAxis < m_PlayerRimPercentage) {
 			//cos-1 [ (a · b) / (|a| |b|) ]
 			
 			float ballDirTimesNormal = (ball.ballDirection.x * leftRimNormal.x) + (ball.ballDirection.y * leftRimNormal.y);
@@ -655,7 +687,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
 			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
 		}
-		if (percentageOnXAxis > playerRimPercentage * 2.0f) {
+		if (percentageOnXAxis > m_PlayerRimPercentage * 2.0f) {
 
 			float ballDirTimesNormal = (ball.ballDirection.x * rightRimNormal.x) + (ball.ballDirection.y * rightRimNormal.y);
 			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
@@ -777,10 +809,11 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 		if (playerCollideVertical) {
 			ball.ballVisual->setFillColor(sf::Color::Yellow);
 			*bounceDirection = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
-			gametiles[i]->hitCount += 1;
+			gametiles[i]->hitCount -= 1;
 			int currentHitCount = gametiles[i]->hitCount;
-			if (currentHitCount >= m_TileHitsAllowed) {
+			if (currentHitCount <= 0) {
 				gametiles[i]->isAlive = false;
+				DropTileEffect(*gametiles[i], &tileShapes[i]);
 			}
 			return true;
 		}
@@ -788,10 +821,11 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 		if (playerCollideHorizontal) {
 			ball.ballVisual->setFillColor(sf::Color::Magenta);
 			*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
-			gametiles[i]->hitCount += 1;
+			gametiles[i]->hitCount -= 1;
 			int currentHitCount = gametiles[i]->hitCount;
-			if (currentHitCount >= m_TileHitsAllowed) {
+			if (currentHitCount <= 0) {
 				gametiles[i]->isAlive = false;
+				DropTileEffect(*gametiles[i], &tileShapes[i]);
 			}
 			return true;
 		}
@@ -799,6 +833,42 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 
 	return false;
 	
+}
+
+bool DropTileEffect(Tile& tile, sf::RectangleShape* drawnTile) {
+	sf::RectangleShape effectRect = sf::RectangleShape(sf::Vector2f(10.0f, 10.0f));
+	effectRect.setSize(sf::Vector2f(10.0f, 10.0f));
+	effectRect.setPosition(drawnTile->getPosition());
+	effectRect.setFillColor(tileTypeToColor[tile.tileType]);
+	DroppingEffect newEffect = DroppingEffect(tile.tileType, effectRect);
+	m_DroppingEffects.push_back(newEffect);
+	
+	//DroppingEffect& addedElement = m_DroppingEffects.emplace_back();
+	//addedElement.visual->setSize()
+
+	//for (auto* effect : m_DroppingEffects)
+	//{
+	//	delete effect;
+	//	effect = nullptr;
+	//}
+	//m_DroppingEffects.clear();
+	return true;
+}
+
+bool DrawTileEffects(sf::RenderWindow& window) {
+	//go through all tile effects in the list and update their position
+	//then draw them
+	float downwardMovementIncrement = 0.02f;
+	int amount = m_DroppingEffects.size();
+	for (int i = 0; i < amount; i++) {
+		sf::Vector2f pos = m_DroppingEffects[i].visual.getPosition();
+		pos = sf::Vector2f(pos.x, pos.y + downwardMovementIncrement);
+		m_DroppingEffects[i].visual.setPosition(pos);
+		sf::RectangleShape currentVisual = m_DroppingEffects[i].visual;
+		window.draw(currentVisual);
+	}
+
+	return true;
 }
 
 float lerp(float a, float b, float f)
