@@ -78,9 +78,9 @@ bool	m_BlockMovementChanges = false;
 int		m_BM_Timer = 0;
 float	m_BlockedMovementFrameTime = 10;
 
-bool	m_PLAYER_BlockMovementChanges = false;
-int		m_PLAYER_BM_Timer = 0;
-float	m_PLAYER_BlockedMovementFrameTime = 20;
+bool	m_PlayerSpeedIsHeightened = false;
+int		m_PlayerSpeedHeightenedTimer = 0;
+float	m_PlayerHeightenedSpeedMultiplier = 20;
 
 
 
@@ -106,7 +106,7 @@ bool moveDown = false;
 bool moveRight = false;
 bool moveLeft = false;
 
-std::list<Ball*> Balls_In_Game;
+std::vector<Ball*> Balls_In_Game;
 std::vector<DroppingEffect> m_DroppingEffects;
 std::map<TileType, sf::Color> tileTypeToColor;
 
@@ -177,17 +177,8 @@ int main()
 	m_PlayerTile->position = m_PlayerPosition;
 	
 	//create ball
-	sf::CircleShape ball_Visual = sf::CircleShape(0.0f);
-	Ball ball = Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, 0.05f, scalingFactor, ball_Visual);
-	ball.ballPosition = m_BallStarterPosition_UNALTERED;
-	ball.ballDirection = sf::Vector2f(std::cos(ball.ballAngle) * ball.ballSpeed, std::sin(ball.ballAngle) * ball.ballSpeed);
-	ball.ballVisual->setRadius(ball.ballRadius);
-	ball.ballVisual->setFillColor(sf::Color::Red);
-	ball.ballVisual->setPosition(ball.ballPosition);
-
-	Balls_In_Game = std::list<Ball*>();
-	Balls_In_Game.push_back(&ball);
-
+	SpawnBall();
+	
 	//setup input arrays
 	SetUpInputCountingSystem();
 
@@ -213,35 +204,47 @@ int main()
 		//Check for Input
 		if (!m_CurrentInputToWorkWith)
 		{
-			m_CurrentInputToWorkWith = CheckForInput(ball, tileShapes, gametiles, window);
+			m_CurrentInputToWorkWith = CheckForInput(*Balls_In_Game[0], tileShapes, gametiles, window);
 		}
 
 		if (m_CalculateOneFrame) {
-			DoGameLoopCalculations(ball, tileShapes, gametiles);
+			DoGameLoopCalculations(*Balls_In_Game[0], tileShapes, gametiles);
 			//std::cout << "Calculate one frame" << std::endl;
 			m_CalculateOneFrame = false;
 		}
 
 		if (m_PauseGame) {
-			MoveBallThroughInput(ball);
-			RenderGameData(window,ball, tileShapes, gametiles);
+			MoveBallThroughInput(*Balls_In_Game[0]);
+			RenderGameData(window, tileShapes, gametiles);
 			
 			continue;
 		}
 
 		
-		DoGameLoopCalculations(ball, tileShapes, gametiles);
-		RenderGameData(window, ball, tileShapes, gametiles);
+		DoGameLoopCalculations(*Balls_In_Game[0], tileShapes, gametiles);
+		RenderGameData(window,tileShapes, gametiles);
 	}
 
 	return 0;
 }
 
+bool SpawnBall() {
+	sf::CircleShape* ball_Visual = new sf::CircleShape(0.0f);
+	Ball* ball = new Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, 0.05f, scalingFactor, *ball_Visual);
+	ball->ballPosition = m_BallStarterPosition_UNALTERED;
+	ball->ballDirection = sf::Vector2f(std::cos(ball->ballAngle) * ball->ballSpeed, std::sin(ball->ballAngle) * ball->ballSpeed);
+	ball->ballVisual->setRadius(ball->ballRadius);
+	ball->ballVisual->setFillColor(sf::Color::Red);
+	ball->ballVisual->setPosition(ball->ballPosition);
+
+	Balls_In_Game.push_back(ball);
+	return true;
+}
 
 bool MoveBallThroughInput(Ball& ball) {
 
 	bool inputGiven = false;
-
+	ball = *Balls_In_Game[0];
 	sf::Vector2f oldDirection = ball.ballDirection;
 	if (moveUp)		{ball.ballDirection = sf::Vector2f(0.0f, -1.0f);		moveUp    = false; inputGiven = true; }
 	if (moveDown)	{ball.ballDirection = sf::Vector2f(0.0f, 1.0f);		moveDown  = false; inputGiven = true;}
@@ -270,70 +273,84 @@ bool SetUpInputCountingSystem() {
 bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]) {
 	//Update Player Position
 
+
 	if (m_CurrentInputToWorkWith) {
+		if (m_PlayerSpeedIsHeightened) {
+			m_PlayerSpeedHeightenedTimer--;
+			m_PlayerPositionChanges.x = m_PlayerPositionChanges.x * m_PlayerHeightenedSpeedMultiplier;
+			if (m_PlayerSpeedHeightenedTimer < 0.0f) {
+				m_PlayerSpeedIsHeightened = false;
+			}
+		}
 		m_PlayerPosition = sf::Vector2f(clip((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f + (m_PlayerDimensions.x / 2.0f), WINDOW_WIDTH - (m_PlayerDimensions.x /2.0f)), m_PlayerPosition.y);
 		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 		m_CurrentInputToWorkWith = false;
 	}
+
 	//Update Ball 
-	//0) check if ball is colliding with walls
-	float wallDistanceXMin = ball.ballPosition.x;
-	float wallDistanceXMax = std::abs(WINDOW_WIDTH - ball.ballPosition.x);
 
-	if (wallDistanceXMin < ball.repellantDistance || wallDistanceXMax < ball.repellantDistance) {
-		std::cout << "Wall Collide!" << std::endl;
-		ball.ballDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
-	}
+	for (int i = 0; i < Balls_In_Game.size(); i++) {
+		//0) check if ball is colliding with walls
+		float wallDistanceXMin = Balls_In_Game[i]->ballPosition.x;
+		float wallDistanceXMax = std::abs(WINDOW_WIDTH - Balls_In_Game[i]->ballPosition.x);
 
-	float wallDistanceYMin = ball.ballPosition.y;
-	float wallDistanceYMax = std::abs(WINDOW_HEIGHT - ball.ballPosition.y);
+		if (wallDistanceXMin < Balls_In_Game[i]->repellantDistance || wallDistanceXMax < Balls_In_Game[i]->repellantDistance) {
+			std::cout << "Wall Collide!" << std::endl;
+			Balls_In_Game[i]->ballDirection = sf::Vector2f(Balls_In_Game[i]->ballDirection.x * -1.0f, Balls_In_Game[i]->ballDirection.y);
+		}
 
-	if (wallDistanceYMin < ball.repellantDistance || wallDistanceYMax < ball.repellantDistance) {
-		std::cout << "Wall Collide!" << std::endl;
-		ball.ballDirection = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
+		float wallDistanceYMin = Balls_In_Game[i]->ballPosition.y;
+		float wallDistanceYMax = std::abs(WINDOW_HEIGHT - Balls_In_Game[i]->ballPosition.y);
 
-	}
+		if (wallDistanceYMin < Balls_In_Game[i]->repellantDistance || wallDistanceYMax < Balls_In_Game[i]->repellantDistance) {
+			std::cout << "Wall Collide!" << std::endl;
+			Balls_In_Game[i]->ballDirection = sf::Vector2f(Balls_In_Game[i]->ballDirection.x, Balls_In_Game[i]->ballDirection.y * -1.0f);
 
-	sf::Vector2f originalBallDirection = ball.ballDirection;
-	sf::Vector2f playerCollisionBounceDirection;
-	sf::Vector2f tileCollisionBounceDirection;
-	sf::Vector2f* ptrToNewDirectionVector = nullptr;
+		}
 
-	/*bool futurePathIsClear = false;*/
+		sf::Vector2f originalBallDirection = Balls_In_Game[i]->ballDirection;
+		sf::Vector2f playerCollisionBounceDirection;
+		sf::Vector2f tileCollisionBounceDirection;
+		sf::Vector2f* ptrToNewDirectionVector = nullptr;
 
-	/*while (!futurePathIsClear) {*/
+		/*bool futurePathIsClear = false;*/
 
-		//give direction vector to work with
-		//calculate if player would collide with the given direction vector
-		//if yes, calculate new direction vector
-		//feed new direction vector back into the loop
-		//if the ball wouldn't collide, set new direction to the given vector
+		/*while (!futurePathIsClear) {*/
 
-		//possible problems:
-		//1) could lead to false collision calculation results if the future ball position check lies too far in the collision area
+			//give direction vector to work with
+			//calculate if player would collide with the given direction vector
+			//if yes, calculate new direction vector
+			//feed new direction vector back into the loop
+			//if the ball wouldn't collide, set new direction to the given vector
 
-		bool collisionWithPlayer = CheckForCollisionWithPlayer(ball,m_PlayerPosition, &playerCollisionBounceDirection, ptrToNewDirectionVector);
-		bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(ball,tileShapes, gametiles, &tileCollisionBounceDirection);
+			//possible problems:
+			//1) could lead to false collision calculation results if the future ball position check lies too far in the collision area
 
-		
+		bool collisionWithPlayer = CheckForCollisionWithPlayer(*Balls_In_Game[i], m_PlayerPosition, &playerCollisionBounceDirection, ptrToNewDirectionVector);
+		bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(*Balls_In_Game[i], tileShapes, gametiles, &tileCollisionBounceDirection);
+		bool effectIsUsed = CheckForEffectUsage();
+
+
 		if (collisionWithPlayer) {
-			ball.ballDirection = playerCollisionBounceDirection;
+			Balls_In_Game[i]->ballDirection = playerCollisionBounceDirection;
 		}
 
 		if (collisionWithTile) {
-			ball.ballDirection = tileCollisionBounceDirection;
+			Balls_In_Game[i]->ballDirection = tileCollisionBounceDirection;
 		}
-	/*}*/
-	
+		/*}*/
 
+
+
+		Balls_In_Game[i]->ballPosition = Balls_In_Game[i]->ballPosition + Balls_In_Game[i]->ballDirection;
+		Balls_In_Game[i]->ballVisual->setPosition(Balls_In_Game[i]->ballPosition);
+	}
 	
-	ball.ballPosition = ball.ballPosition + ball.ballDirection;
-	ball.ballVisual->setPosition(ball.ballPosition);
 
 	return true;
 }
 
-bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]) {
+bool RenderGameData(sf::RenderWindow& window, sf::RectangleShape tileShapes[], Tile* gametiles[]) {
 
 	//Update Tiles 
 
@@ -387,13 +404,15 @@ bool RenderGameData(sf::RenderWindow& window, Ball& ball, sf::RectangleShape til
 	window.draw(playerTileLeft);
 	window.draw(playerTileRight);
 
+	for (int i = 0; i < Balls_In_Game.size(); i++) {
+		Balls_In_Game[i]->ballVisual->setPosition(Balls_In_Game[i]->ballPosition);
+		window.draw(*Balls_In_Game[i]->ballVisual);
 
-	ball.ballVisual->setPosition(ball.ballPosition);
+	}
 
 
 
 	//draw ball
-	window.draw(*ball.ballVisual);
 
 	window.display();
 
@@ -495,9 +514,9 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::T) && inputAllowed[8]) {
-		DropTileEffect(*gameTiles[10], &tileShapes[10]);
-		DrawTileEffects(window);
-
+		/*DropTileEffect(*gameTiles[10], &tileShapes[10]);
+		DrawTileEffects(window);*/
+		SpawnBall();
 		inputAllowed[8] = false;
 	}
 
@@ -871,14 +890,51 @@ bool DrawTileEffects(sf::RenderWindow& window) {
 	return true;
 }
 
-bool CheckEffectWithPlayerCollision() {
+TileType CheckEffectWithPlayerCollision(bool* collisionBool) {
 
+	TileType foundType = TileType::NoEvent;
 	int length = m_DroppingEffects.size();
 	for (int i = 0; i < length; i++) {
 		//check if tile is colliding with player
-
+		sf::Vector2f effectPos = m_DroppingEffects[i].visual.getPosition();
+		float distanceEffectPlayerY = abs(effectPos.y - m_PlayerPosition.y);
+		if (distanceEffectPlayerY < 2.0f) {
+			if (effectPos.x < (m_PlayerPosition.x + (m_PlayerDimensions.x / 2.0f)) && effectPos.x >(m_PlayerPosition.x - (m_PlayerDimensions.x / 2.0f))) {
+				foundType = m_DroppingEffects[i].effectType;
+				*collisionBool = true;
+				m_DroppingEffects.erase(m_DroppingEffects.begin()+ i);
+				return foundType;
+			}
+		}
 		//if yes, return 
 	}
+
+	*collisionBool = false;
+	return foundType;
+}
+
+bool CheckForEffectUsage() {
+	bool collisionPlayerWithEffect = false;
+	TileType effectType = CheckEffectWithPlayerCollision(&collisionPlayerWithEffect);
+	if (collisionPlayerWithEffect) {
+		switch (effectType) {
+		case TileType::AddedBall:
+			std::cout << "Added Ball!" << std::endl;
+			SpawnBall();
+			break;
+		case TileType::QuickerPlayer:
+			std::cout << "Quicker Player!" << std::endl;
+			m_PlayerSpeedHeightenedTimer = 400.0f;
+			m_PlayerSpeedIsHeightened = true;
+			break;
+		case TileType::NoEvent:
+			std::cout << "No Event!" << std::endl;
+			break;
+
+		}
+		return true;
+	}
+	return false;
 }
 
 float lerp(float a, float b, float f)
