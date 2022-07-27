@@ -871,6 +871,16 @@ bool DrawTileEffects(sf::RenderWindow& window) {
 	return true;
 }
 
+bool CheckEffectWithPlayerCollision() {
+
+	int length = m_DroppingEffects.size();
+	for (int i = 0; i < length; i++) {
+		//check if tile is colliding with player
+
+		//if yes, return 
+	}
+}
+
 float lerp(float a, float b, float f)
 {
 	return a + f * (b - a);
