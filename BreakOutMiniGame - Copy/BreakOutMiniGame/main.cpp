@@ -80,7 +80,8 @@ float	m_BlockedMovementFrameTime = 10;
 
 bool	m_PlayerSpeedIsHeightened = false;
 int		m_PlayerSpeedHeightenedTimer = 0;
-float	m_PlayerHeightenedSpeedMultiplier = 20;
+float	m_PlayerHeightenedSpeedMultiplier = 3;
+float	m_PlayerSpeedHeightenedDuration = 5000.0f;
 
 
 
@@ -516,7 +517,9 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::T) && inputAllowed[8]) {
 		/*DropTileEffect(*gameTiles[10], &tileShapes[10]);
 		DrawTileEffects(window);*/
-		SpawnBall();
+		//SpawnBall();
+		m_PlayerSpeedHeightenedTimer = m_PlayerSpeedHeightenedDuration;
+		m_PlayerSpeedIsHeightened = true;
 		inputAllowed[8] = false;
 	}
 
@@ -924,7 +927,7 @@ bool CheckForEffectUsage() {
 			break;
 		case TileType::QuickerPlayer:
 			std::cout << "Quicker Player!" << std::endl;
-			m_PlayerSpeedHeightenedTimer = 400.0f;
+			m_PlayerSpeedHeightenedTimer = m_PlayerSpeedHeightenedDuration;
 			m_PlayerSpeedIsHeightened = true;
 			break;
 		case TileType::NoEvent:
