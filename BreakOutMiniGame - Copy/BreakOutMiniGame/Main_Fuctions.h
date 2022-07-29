@@ -32,3 +32,4 @@ bool DrawTileEffects(sf::RenderWindow& window);
 TileType CheckEffectWithPlayerCollision(bool* collisionBool);
 bool CheckForEffectUsage();
 bool SpawnBall();
+void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector);

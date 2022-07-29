@@ -3,6 +3,7 @@
 #include "Tile.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <cmath>
 #include "Main_Fuctions.h"
 #include <algorithm>
 #include <chrono>
@@ -60,20 +61,11 @@ const sf::Color ONE_HIT_COLOR = sf::Color::Red;
 bool				m_CurrentInputToWorkWith = false;
 Tile*				m_PlayerTile; 
 const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(55.0f, 10.0f) * scalingFactor;
-//sf::Vector2f		m_PlayerPosition		= sf::Vector2f((WINDOW_WIDTH / 2.0f) - (m_PlayerDimensions.x / 2.0f), WINDOW_HEIGHT * 0.66f);
-//sf::Vector2f		m_PlayerPosition		= sf::Vector2f(198.798f, 396.0f);
 sf::Vector2f		m_PlayerPosition = sf::Vector2f(0.33f * WINDOW_WIDTH, 0.8f * WINDOW_HEIGHT);
 sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 float				m_PMovementIncrements	= 0.09f;
-float				m_PlayerRimPercentage	= 0.1f;
+float				m_PlayerRimPercentage	= 0.3f;
 
-//Ball Variables
-//float m_BallRadius = 2.0f * scalingFactor;
-//sf::Vector2f m_BallPosition; 
-//sf::Vector2f m_BallDirection;
-//float m_BallAngle = 315.0f;
-//float m_BallSpeed = 0.05f;
-//float m_RepellantDistance = m_BallRadius/2.0f;
 
 bool	m_BlockMovementChanges = false;
 int		m_BM_Timer = 0;
@@ -111,6 +103,10 @@ bool moveLeft = false;
 std::vector<Ball*> Balls_In_Game;
 std::vector<DroppingEffect> m_DroppingEffects;
 std::map<TileType, sf::Color> tileTypeToColor;
+
+//Debugging Visuals
+
+sf::Vertex m_PlayerNormalLineCoords [8]; 
 
 int main()
 {
@@ -413,7 +409,13 @@ bool RenderGameData(sf::RenderWindow& window, sf::RectangleShape tileShapes[], T
 	}
 
 
-
+	//draw debugging lines
+	for (int k = 0; k < 8; k += 2) {
+		sf::Vertex currentCoordsPair[2] = {m_PlayerNormalLineCoords[k], m_PlayerNormalLineCoords[k+1]};
+		window.draw(currentCoordsPair, 2, sf::LinesStrip);
+		
+	}
+	
 	//draw ball
 
 	window.display();
@@ -680,19 +682,59 @@ bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vec
 	return false;
 }
 
+void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector) {
+
+	sf::Vector2f leftPos = sf::Vector2f(m_PlayerPosition.x - (m_PlayerDimensions.x * m_PlayerRimPercentage), m_PlayerPosition.y);
+	sf::Vector2f rightPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * m_PlayerRimPercentage), m_PlayerPosition.y);
+	//left coords & color
+	m_PlayerNormalLineCoords[0].position = leftPos;
+	m_PlayerNormalLineCoords[0].color = sf::Color::Cyan;
+
+	m_PlayerNormalLineCoords[1].position = leftPos + (leftRimNormal * 100.0f);
+	m_PlayerNormalLineCoords[1].color = sf::Color::Cyan;
+
+	//right coords & color
+
+	m_PlayerNormalLineCoords[2].position = rightPos;
+	m_PlayerNormalLineCoords[2].color = sf::Color::Cyan;
+
+	m_PlayerNormalLineCoords[3].position = rightPos + (rightRimNormal * 100.0f);
+	m_PlayerNormalLineCoords[3].color = sf::Color::Cyan;
+
+	//reflection incoming + outgoing vectors
+	m_PlayerNormalLineCoords[4].position = m_PlayerPosition - (ballToPlayerVector * 1000.0f);
+	m_PlayerNormalLineCoords[4].color = sf::Color::Red;
+
+	m_PlayerNormalLineCoords[5].position = m_PlayerPosition;
+	m_PlayerNormalLineCoords[5].color = sf::Color::Red;
+
+	m_PlayerNormalLineCoords[6].position = m_PlayerPosition;
+	m_PlayerNormalLineCoords[6].color = sf::Color::Red;
+
+	m_PlayerNormalLineCoords[7].position = m_PlayerPosition + (newBallDirVector * 1000.0f);
+	m_PlayerNormalLineCoords[7].color = sf::Color::Red;
+}
 
 sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Ball& ball) {
 
 	sf::Vector2f newBallDirectionVector; 
-	float deviationAngle = 1.0f;
-	float leftAngleInRadianX = cos((90.0f + deviationAngle)  * (M_PI / 180.0f));
-	float leftAngleInRadianY = sin((90.0f + deviationAngle)  * (M_PI / 180.0f));
-	float rightAngleInRadianX = cos((90.0f - deviationAngle) * (M_PI / 180.0f));
-	float rightAngleInRadianY = sin((90.0f - deviationAngle) * (M_PI / 180.0f));
+	float deviationAngle = 5.0f;
+	float leftAngleInRadianX = cos(((double)270.0f + (double)deviationAngle)  * (M_PI / 180.0f));
+	float leftAngleInRadianY = sin(((double)270.0f + (double)deviationAngle)  * (M_PI / 180.0f));
+	float rightAngleInRadianX = cos(((double)270.0f - (double)deviationAngle) * (M_PI / 180.0f));
+	float rightAngleInRadianY = sin(((double)270.0f - (double)deviationAngle) * (M_PI / 180.0f));
 
 	
 	sf::Vector2f leftRimNormal = sf::Vector2f(leftAngleInRadianX , leftAngleInRadianY);
 	sf::Vector2f rightRimNormal =  sf::Vector2f(rightAngleInRadianX , rightAngleInRadianY);
+
+	m_PlayerNormalLineCoords[0].position = m_PlayerPosition;
+	m_PlayerNormalLineCoords[0].color = sf::Color::Red;
+
+	m_PlayerNormalLineCoords[1].position = m_PlayerPosition + (rightRimNormal * 100.0f);
+	m_PlayerNormalLineCoords[1].color = sf::Color::Red;
+
+
 	//player collision ball bounce vector calculation based on where on the player it lands
 	//1) where on the player did we land? (percentage areas)
 	if (type == CollisionType::VerticalCollision) {
@@ -710,7 +752,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
 			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
 		}
-		if (percentageOnXAxis > m_PlayerRimPercentage * 2.0f) {
+		if (percentageOnXAxis > 1.0f - m_PlayerRimPercentage ) {
 
 			float ballDirTimesNormal = (ball.ballDirection.x * rightRimNormal.x) + (ball.ballDirection.y * rightRimNormal.y);
 			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
@@ -724,6 +766,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 		else {
 			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
 		}
+		UpdateCollisionDebugDrawings(leftRimNormal, rightRimNormal, ball.ballDirection, newBallDirectionVector);
 	}
 
 	//2) calculate the normal for the player area (make it customizable based on initial deviation degree for normal)
