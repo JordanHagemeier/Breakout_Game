@@ -10,7 +10,28 @@
 #include "Ball.h"
 #include <list>
 #include <random>
+#include "RenderManager.h"
 
+/* //F
+
+Feedback 31.07
+
+1. Rendermanager:
+- map <id, sf::Shape*>
+-> GetShape(id);
+-> id AddShape(Shape*)
+-> DeleteShape(id);
+-> Render() --> rendert alle yoinker
+-> jedes Object was rendern will, holt sich vom RManager ne id für sein rendering dings
+--> Render & Gamelogic mehr trennen
+
+2. Klassen für die einzelnen GameElemente (player, ball, tile)
+-> Funktionen in die klassen
+
+3. Unbenutzen Kram löschen
+
+
+*/
 
 
 //INITIALIZATION
@@ -43,40 +64,39 @@
 //-> centered position of tile + length and width of a tile should make it possible to calculate the bounding box 
 //if a tile is hit, then it bounces off + tile loses one "tile life" (changes graphics, or disables if it was hit too many times)
 
-
+//F constexpr
 const int WINDOW_SEGMENTS_WIDTH = 8;
 const int WINDOW_SEGMENTS_HEIGHT = 6;
-const int tileArrayLength = WINDOW_SEGMENTS_WIDTH*WINDOW_SEGMENTS_HEIGHT;
+const int TILE_ARRAY_LENGTH = WINDOW_SEGMENTS_WIDTH*WINDOW_SEGMENTS_HEIGHT;
 
-const int WINDOW_WIDTH = 200 * scalingFactor;
+const int WINDOW_WIDTH = 200 * scalingFactor; //F einheit? px?
 const int WINDOW_HEIGHT = 200 * scalingFactor;
 
-bool m_PauseGame = false;
+bool m_GamePaused = false;//F m_GamePaused / m_RequestPauseGame
 bool m_CalculateOneFrame = false;
 
 const sf::Color NO_HIT_COLOR = sf::Color::Blue;
 const sf::Color ONE_HIT_COLOR = sf::Color::Red;
 
+//F -> Player.h
 //Player Variables
-bool				m_CurrentInputToWorkWith = false;
-Tile*				m_PlayerTile; 
+bool				m_CurrentInputToWorkWith = false; //F  not player related, but application related "m_NewInputAvailable"
+Tile*				m_PlayerTile; //F remove?
 const sf::Vector2f	m_PlayerDimensions		= sf::Vector2f(55.0f, 10.0f) * scalingFactor;
 sf::Vector2f		m_PlayerPosition = sf::Vector2f(0.33f * WINDOW_WIDTH, 0.8f * WINDOW_HEIGHT);
-sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
-float				m_PMovementIncrements	= 0.09f;
-float				m_PlayerRimPercentage	= 0.3f;
+sf::Vector2f		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f); //F could be "this is how much the player moved last tick" "this is how much we want to move next tick" -> m_DesiredMovement? m_MovementToApply m_MovementNextTick
+constexpr float		BASE_MOVEMENT_SPEED	= 0.09f; //F MOVEMENT_PER_TICK / m_MovementSpeed (perTick) ||| const wenn sichs nicht ändert oder sogar constexpr -> BASE_MOVEMENT_SPEED
+constexpr float		PLAYER_RIM_PERCENTAGE	= 0.3f;
 
+//  -> Player.h
+bool	m_PlayerSpeedIsHeightened = false; //F buffed, increased
+int		m_PlayerSpeedHeightenedTimer = 0; //F unclear: could be time since buff start or time until buff end -> m_RemainingSpeedBuffTime | m_SpeedBuffRunningSince
+float	m_PlayerHeightenedSpeedMultiplier = 3; //F static constexpr --> could be part of buff class (does not really belong to player)
+float	m_PlayerSpeedHeightenedDuration = 5000.0f; //F static constexpr --> could be part of buff class (does not really belong to player)
+sf::Color m_PStarterColor = sf::Color::Green; //F Player::BASE_COLOR
+sf::Color m_PSpeedHeightenedEffectColor = sf::Color::Cyan; //F Player::BUFF_COLOR
 
-bool	m_BlockMovementChanges = false;
-int		m_BM_Timer = 0;
-float	m_BlockedMovementFrameTime = 10;
-
-bool	m_PlayerSpeedIsHeightened = false;
-int		m_PlayerSpeedHeightenedTimer = 0;
-float	m_PlayerHeightenedSpeedMultiplier = 3;
-float	m_PlayerSpeedHeightenedDuration = 5000.0f;
-
-
+//F === Until here ===
 
 //Tile Variables
 sf::Vector2f m_TileDimensions = sf::Vector2<float>((float)(WINDOW_WIDTH/WINDOW_SEGMENTS_WIDTH), (float)(WINDOW_HEIGHT/WINDOW_SEGMENTS_HEIGHT) / 3.0f);
@@ -100,7 +120,7 @@ bool moveDown = false;
 bool moveRight = false;
 bool moveLeft = false;
 
-std::vector<Ball*> Balls_In_Game;
+std::vector<Ball*> Balls_In_Game; //F inconsistent
 std::vector<DroppingEffect> m_DroppingEffects;
 std::map<TileType, sf::Color> tileTypeToColor;
 
@@ -108,8 +128,12 @@ std::map<TileType, sf::Color> tileTypeToColor;
 
 sf::Vertex m_PlayerNormalLineCoords [8]; 
 
+//Manager
+RenderManager* renderManager; 
+
 int main()
 {
+	
 	//Tile Color Setup
 	m_DroppingEffects = std::vector<DroppingEffect>();
 
@@ -140,39 +164,43 @@ int main()
 	m_FinalHitColor = sf::Color::Red;
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML works!");
-	sf::CircleShape shape(10.f);
+	renderManager = new RenderManager(window);
+
+	/*sf::CircleShape shape(10.f);
 	shape.setFillColor(sf::Color::Green);
-	shape.setPosition((WINDOW_WIDTH/2.0f)-10.0f, (WINDOW_HEIGHT/2.0f)-10.0f);
+	shape.setPosition((WINDOW_WIDTH/2.0f)-10.0f, (WINDOW_HEIGHT/2.0f)-10.0f);*/
 
 	
-	Tile* gametiles[tileArrayLength];
-	FillTileArrayWithData(gametiles, tileArrayLength);
+	Tile* gametiles[TILE_ARRAY_LENGTH];
+	FillTileArrayWithData(gametiles, TILE_ARRAY_LENGTH);
 
-	sf::RectangleShape tileShapes[tileArrayLength];
+	//sf::RectangleShape tileShapes[TILE_ARRAY_LENGTH];
 
 
 	
-	for (int i = 0; i < tileArrayLength; i++) {
-		float outlineThickness = 0.5f;
-		sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f* outlineThickness,2.0f* outlineThickness);
-		sf::Vector2<float> position = sf::Vector2<float>((gametiles[i]->position.x * (WINDOW_WIDTH/WINDOW_SEGMENTS_WIDTH)) + outlineThickness + (m_TileDimensions.x /2.0f), gametiles[i]->position.y * (WINDOW_HEIGHT/WINDOW_SEGMENTS_HEIGHT)/3.0f + (m_TileDimensions.y /2.0f));
-		sf::RectangleShape rect(size);
+	//for (int i = 0; i < TILE_ARRAY_LENGTH; i++) {
+	//	float outlineThickness = 0.5f;
+	//	sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f* outlineThickness,2.0f* outlineThickness);
+	//	sf::Vector2<float> position = sf::Vector2<float>((gametiles[i]->position.x * (WINDOW_WIDTH/WINDOW_SEGMENTS_WIDTH)) + outlineThickness + (m_TileDimensions.x /2.0f), gametiles[i]->position.y * (WINDOW_HEIGHT/WINDOW_SEGMENTS_HEIGHT)/3.0f + (m_TileDimensions.y /2.0f));
+	//	sf::RectangleShape* rect= new sf::RectangleShape(size);
 
-		
-		
-		rect.setOrigin(m_TileDimensions.x/2.0f, m_TileDimensions.y/2.0f);
-		rect.setFillColor(gametiles[i]->color);
-		rect.setOutlineColor(sf::Color::White);
-		rect.setOutlineThickness(outlineThickness);
-		rect.setPosition(position);
-		tileShapes[i] = rect;
-		
-		
-	}
+	//	
+	//	
+	//	rect->setOrigin(m_TileDimensions.x/2.0f, m_TileDimensions.y/2.0f);
+	//	rect->setFillColor(gametiles[i]->color);
+	//	rect->setOutlineColor(sf::Color::White);
+	//	rect->setOutlineThickness(outlineThickness);
+	//	rect->setPosition(position);
+	///*	tileShapes[i] = rect;*/
+	//	gametiles[i]->tileVisualID = renderManager->AddShape(rect);
+	//	
+	//	
+	//}
 
 	//Create player tile
 	m_PlayerTile = new Tile();
 	m_PlayerTile->position = m_PlayerPosition;
+	m_PlayerTile->baseColor = m_PStarterColor;
 	
 	//create ball
 	SpawnBall();
@@ -202,25 +230,25 @@ int main()
 		//Check for Input
 		if (!m_CurrentInputToWorkWith)
 		{
-			m_CurrentInputToWorkWith = CheckForInput(*Balls_In_Game[0], tileShapes, gametiles, window);
+			m_CurrentInputToWorkWith = CheckForInput(*Balls_In_Game[0], gametiles, window);
 		}
 
 		if (m_CalculateOneFrame) {
-			DoGameLoopCalculations(*Balls_In_Game[0], tileShapes, gametiles);
+			DoGameLoopCalculations(*Balls_In_Game[0], gametiles);
 			//std::cout << "Calculate one frame" << std::endl;
 			m_CalculateOneFrame = false;
 		}
 
-		if (m_PauseGame) {
+		if (m_GamePaused) {
 			MoveBallThroughInput(*Balls_In_Game[0]);
-			RenderGameData(window, tileShapes, gametiles);
+			RenderGameData(window,gametiles);
 			
 			continue;
 		}
 
 		
-		DoGameLoopCalculations(*Balls_In_Game[0], tileShapes, gametiles);
-		RenderGameData(window,tileShapes, gametiles);
+		DoGameLoopCalculations(*Balls_In_Game[0], gametiles);
+		RenderGameData(window, gametiles);
 	}
 
 	return 0;
@@ -228,17 +256,19 @@ int main()
 
 bool SpawnBall() {
 	sf::CircleShape* ball_Visual = new sf::CircleShape(0.0f);
-	Ball* ball = new Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, 0.05f, scalingFactor, *ball_Visual);
+	int ballVisID = renderManager->AddShape(ball_Visual);
+	Ball* ball = new Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, 0.05f, scalingFactor, *ball_Visual, ballVisID);
 	ball->ballPosition = m_BallStarterPosition_UNALTERED;
 	ball->ballDirection = sf::Vector2f(std::cos(ball->ballAngle) * ball->ballSpeed, std::sin(ball->ballAngle) * ball->ballSpeed);
-	ball->ballVisual->setRadius(ball->ballRadius);
-	ball->ballVisual->setFillColor(sf::Color::Red);
-	ball->ballVisual->setPosition(ball->ballPosition);
+	ball_Visual->setRadius(ball->ballRadius);
+	ball_Visual->setFillColor(sf::Color::Red);
+	ball_Visual->setPosition(ball->ballPosition);
 
 	Balls_In_Game.push_back(ball);
 	return true;
 }
 
+//F in ball.h --> UpdateMovement & UpdateMovement_DebugInput, ein if/else entscheidet welche von den beiden genutzt wird
 bool MoveBallThroughInput(Ball& ball) {
 
 	bool inputGiven = false;
@@ -251,7 +281,8 @@ bool MoveBallThroughInput(Ball& ball) {
 
 	if (inputGiven) {
 		ball.ballPosition = ball.ballPosition + (ball.ballDirection * 2.0f);
-		ball.ballVisual->setPosition(ball.ballPosition);
+		sf::CircleShape* ballVisual = (sf::CircleShape*)renderManager->GetShape(ball.ballVisualID);
+		ballVisual->setPosition(ball.ballPosition);
 	}
 	
 	ball.ballDirection = oldDirection;
@@ -268,21 +299,58 @@ bool SetUpInputCountingSystem() {
 	return true;
 }
 
-bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* gametiles[]) {
+bool UpdatePlayerPosition() {
+
+	m_PlayerPosition = sf::Vector2f(clamp((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f + (m_PlayerDimensions.x / 2.0f), WINDOW_WIDTH - (m_PlayerDimensions.x / 2.0f)), m_PlayerPosition.y);
+	m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
+	m_CurrentInputToWorkWith = false;
+	return true;
+}
+
+bool DoGameLoopCalculations(Ball& ball, Tile* gametiles[]) {
 	//Update Player Position
 
+	if (m_PlayerSpeedIsHeightened) {
+		m_PlayerSpeedHeightenedTimer--;
+		m_PlayerPositionChanges.x = m_PlayerPositionChanges.x * m_PlayerHeightenedSpeedMultiplier;
+		float effectDurationPercentage = (float)m_PlayerSpeedHeightenedTimer / (float)m_PlayerSpeedHeightenedDuration;
+
+		m_PlayerTile->baseColor.r = lerp(m_PSpeedHeightenedEffectColor.r, m_PlayerTile->baseColor.r, effectDurationPercentage);
+		m_PlayerTile->baseColor.g = lerp(m_PSpeedHeightenedEffectColor.g, m_PlayerTile->baseColor.g, effectDurationPercentage);
+		m_PlayerTile->baseColor.b = lerp(m_PSpeedHeightenedEffectColor.b, m_PlayerTile->baseColor.b, effectDurationPercentage);
+		if (m_PlayerSpeedHeightenedTimer < 0.0f) {
+			m_PlayerSpeedIsHeightened = false;
+			m_PlayerTile->baseColor = m_PStarterColor;
+		}
+	}
 
 	if (m_CurrentInputToWorkWith) {
-		if (m_PlayerSpeedIsHeightened) {
-			m_PlayerSpeedHeightenedTimer--;
-			m_PlayerPositionChanges.x = m_PlayerPositionChanges.x * m_PlayerHeightenedSpeedMultiplier;
-			if (m_PlayerSpeedHeightenedTimer < 0.0f) {
-				m_PlayerSpeedIsHeightened = false;
+	
+		UpdatePlayerPosition();
+		sf::Vector2f playerCollisionBounceDirection;
+		sf::Vector2f* ptrToNewDirectionVector = nullptr;
+		for (int j = 0; j < Balls_In_Game.size(); j++) {
+			bool collisionWithPlayer = CheckForCollisionWithPlayer(*Balls_In_Game[j], m_PlayerPosition, &playerCollisionBounceDirection, ptrToNewDirectionVector);
+			if (collisionWithPlayer) {
+				//check if the ball is already inside the player 
+				Ball currentBall = *Balls_In_Game[j];
+				if (currentBall.ballPosition.x < (m_PlayerPosition.x + m_PlayerDimensions.x / 2.0f) && currentBall.ballPosition.x > (m_PlayerPosition.x - m_PlayerDimensions.x / 2.0f)) {
+					if (currentBall.ballPosition.y < (m_PlayerPosition.y + m_PlayerDimensions.y / 2.0f) && currentBall.ballPosition.y >(m_PlayerPosition.y - m_PlayerDimensions.y / 2.0f)) {
+						//teleport it to the side the ball came from and reflect horizontally 
+						bool comingInLeft = currentBall.ballDirection.x > 0.0f;
+						float distanceBallToPlayerMiddle = abs(currentBall.ballPosition.x - m_PlayerPosition.x);
+						float setOffDistance = m_PlayerDimensions.x - distanceBallToPlayerMiddle;
+						currentBall.ballPosition = sf::Vector2f(currentBall.ballPosition.x - setOffDistance, currentBall.ballPosition.y);
+						currentBall.ballDirection = playerCollisionBounceDirection;
+
+					}
+				}
+				//teleport outside the area
 			}
+
 		}
-		m_PlayerPosition = sf::Vector2f(clip((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f + (m_PlayerDimensions.x / 2.0f), WINDOW_WIDTH - (m_PlayerDimensions.x /2.0f)), m_PlayerPosition.y);
-		m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
-		m_CurrentInputToWorkWith = false;
+		//Trigger update checks for all balls
+		//if balls are within player tile area, they need to be repelled and probably teleported outside of the area
 	}
 
 	//Update Ball 
@@ -325,11 +393,27 @@ bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* g
 			//1) could lead to false collision calculation results if the future ball position check lies too far in the collision area
 
 		bool collisionWithPlayer = CheckForCollisionWithPlayer(*Balls_In_Game[i], m_PlayerPosition, &playerCollisionBounceDirection, ptrToNewDirectionVector);
-		bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(*Balls_In_Game[i], tileShapes, gametiles, &tileCollisionBounceDirection);
+		bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(*Balls_In_Game[i], gametiles, &tileCollisionBounceDirection);
 		bool effectIsUsed = CheckForEffectUsage();
 
-
+		//ALL OF THIS NEEDS TO BE DONE OUTSIDE OF "COLLISION WITH PLAYER"
 		if (collisionWithPlayer) {
+			//check if the ball is already inside the player 
+			Ball currentBall = *Balls_In_Game[i];
+			if (currentBall.ballPosition.x < (m_PlayerPosition.x + m_PlayerDimensions.x / 2.0f) && currentBall.ballPosition.x >(m_PlayerPosition.x - m_PlayerDimensions.x / 2.0f)) {
+				if (currentBall.ballPosition.y < (m_PlayerPosition.y + m_PlayerDimensions.y / 2.0f) && currentBall.ballPosition.y >(m_PlayerPosition.y - m_PlayerDimensions.y / 2.0f)) {
+					//teleport it to the side the ball came from and reflect horizontally 
+					bool comingInLeft = currentBall.ballDirection.x > 0.0f;
+					float distanceBallToPlayerMiddle = abs(currentBall.ballPosition.x - m_PlayerPosition.x);
+					float setOffDistance = m_PlayerDimensions.x - distanceBallToPlayerMiddle;
+					if (comingInLeft) {
+						currentBall.ballPosition = sf::Vector2f(m_PlayerPosition.x - (m_PlayerDimensions.x + 10.0f), currentBall.ballPosition.y);
+
+					}
+					currentBall.ballDirection = currentBall.ballDirection * -1.0f;
+
+				}
+			}
 			Balls_In_Game[i]->ballDirection = playerCollisionBounceDirection;
 		}
 
@@ -339,16 +423,15 @@ bool DoGameLoopCalculations(Ball& ball, sf::RectangleShape tileShapes[], Tile* g
 		/*}*/
 
 
-
-		Balls_In_Game[i]->ballPosition = Balls_In_Game[i]->ballPosition + Balls_In_Game[i]->ballDirection;
-		Balls_In_Game[i]->ballVisual->setPosition(Balls_In_Game[i]->ballPosition);
+		sf::Vector2f newBallPosition = Balls_In_Game[i]->ballPosition + Balls_In_Game[i]->ballDirection;
+		Balls_In_Game[i]->ballPosition = newBallPosition;
 	}
 	
 
 	return true;
 }
 
-bool RenderGameData(sf::RenderWindow& window, sf::RectangleShape tileShapes[], Tile* gametiles[]) {
+bool RenderGameData(sf::RenderWindow& window,  Tile* gametiles[]) {
 
 	//Update Tiles 
 
@@ -356,55 +439,56 @@ bool RenderGameData(sf::RenderWindow& window, sf::RectangleShape tileShapes[], T
 
 
 	//draw tiles
-	for (int j = 0; j < tileArrayLength; j++) {
-		sf::RectangleShape currentTile = tileShapes[j];
+	for (int j = 0; j < TILE_ARRAY_LENGTH; j++) {
+		sf::RectangleShape* currentTile = (sf::RectangleShape*)renderManager->GetShape(gametiles[j]->tileVisualID);
 		float currentHitPercentage = 1.0f - (float)gametiles[j]->hitCount / gametiles[j]->allowedHits;
-		sf::Uint8 redPercentage = lerp(gametiles[j]->color.r, m_FinalHitColor.r, currentHitPercentage);
-		sf::Uint8 greenPercentage = lerp(gametiles[j]->color.g, m_FinalHitColor.g, currentHitPercentage);
-		sf::Uint8 bluePercentage = lerp(gametiles[j]->color.b, m_FinalHitColor.b, currentHitPercentage);
+		sf::Uint8 redPercentage = lerp(gametiles[j]->baseColor.r, m_FinalHitColor.r, currentHitPercentage);
+		sf::Uint8 greenPercentage = lerp(gametiles[j]->baseColor.g, m_FinalHitColor.g, currentHitPercentage);
+		sf::Uint8 bluePercentage = lerp(gametiles[j]->baseColor.b, m_FinalHitColor.b, currentHitPercentage);
 		sf::Uint8 alphaPercentage = 255;
 
 		sf::Color color = sf::Color(redPercentage, greenPercentage, bluePercentage, alphaPercentage);
-		currentTile.setFillColor(color);
-		if (gametiles[j]->isAlive) {
-			window.draw(currentTile);
+		currentTile->setFillColor(color);
+		if (!gametiles[j]->isAlive) {
+			/*window.draw(currentTile);*/
+			currentTile->setFillColor(sf::Color::Black);
+			currentTile->setOutlineColor(sf::Color::Black);
 		}
 	}
 	//draw tile effects which are falling down
 	DrawTileEffects(window);
 
 	//draw player tile
-	sf::RectangleShape playerTileMiddle			= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * (1.0f - m_PlayerRimPercentage), m_PlayerDimensions.y));
-	sf::RectangleShape playerTileLeft		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * m_PlayerRimPercentage, m_PlayerDimensions.y));
-	sf::RectangleShape playerTileRight		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * m_PlayerRimPercentage, m_PlayerDimensions.y));
+	sf::RectangleShape playerTileMiddle			= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * (1.0f - PLAYER_RIM_PERCENTAGE), m_PlayerDimensions.y));
+	sf::RectangleShape playerTileLeft		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * PLAYER_RIM_PERCENTAGE, m_PlayerDimensions.y));
+	sf::RectangleShape playerTileRight		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * PLAYER_RIM_PERCENTAGE, m_PlayerDimensions.y));
 
 
 	playerTileMiddle.setOrigin(sf::Vector2f(m_PlayerDimensions.x/2.0f, m_PlayerDimensions.y/2.0f));
 	playerTileLeft.setOrigin(sf::Vector2f((m_PlayerDimensions.x/2.0f), m_PlayerDimensions.y/2.0f));
 	playerTileRight.setOrigin(sf::Vector2f((m_PlayerDimensions.x/2.0f), m_PlayerDimensions.y/2.0f));
-	/*playerTileLeft.setOrigin(sf::Vector2f((m_PlayerDimensions.x / 2.0f) * m_PlayerRimPercentage, m_PlayerDimensions.y / 2.0f));
-	playerTileRight.setOrigin(sf::Vector2f((m_PlayerDimensions.x / 2.0f) + ((m_PlayerDimensions.x / 2.0f) * m_PlayerRimPercentage), m_PlayerDimensions.y / 2.0f));*/
 
-	
 
-	sf::Vector2f drawingPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * (m_PlayerRimPercentage)), m_PlayerPosition.y);
-	sf::Vector2f leftPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * (1.0f - m_PlayerRimPercentage)), m_PlayerPosition.y);
+	sf::Vector2f drawingPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * (PLAYER_RIM_PERCENTAGE)), m_PlayerPosition.y);
+	sf::Vector2f leftPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * (1.0f - PLAYER_RIM_PERCENTAGE)), m_PlayerPosition.y);
 	sf::Vector2f rightPos = sf::Vector2f(m_PlayerPosition.x, m_PlayerPosition.y);
 	playerTileMiddle.setPosition(drawingPos);
 	playerTileLeft.setPosition(leftPos);
 	playerTileRight.setPosition(rightPos);
 
-	playerTileMiddle.setFillColor(sf::Color::Green);
+	playerTileMiddle.setFillColor(m_PlayerTile->baseColor);
 	playerTileLeft.setFillColor(sf::Color::Red);
 	playerTileRight.setFillColor(sf::Color::Blue);
 	playerTileMiddle.setOutlineColor(sf::Color::Yellow);
+
+	
 	window.draw(playerTileMiddle);
 	window.draw(playerTileLeft);
 	window.draw(playerTileRight);
 
 	for (int i = 0; i < Balls_In_Game.size(); i++) {
-		Balls_In_Game[i]->ballVisual->setPosition(Balls_In_Game[i]->ballPosition);
-		window.draw(*Balls_In_Game[i]->ballVisual);
+		sf::CircleShape* currentBallVisual = (sf::CircleShape*)renderManager->GetShape(Balls_In_Game[i]->ballVisualID);
+		currentBallVisual->setPosition(Balls_In_Game[i]->ballPosition);
 
 	}
 
@@ -417,11 +501,12 @@ bool RenderGameData(sf::RenderWindow& window, sf::RectangleShape tileShapes[], T
 	}
 	
 	//draw ball
-
+	renderManager->Render();
 	window.display();
 
 	return true;
 }
+
 bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
 
 
@@ -435,7 +520,12 @@ bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
 	
 	for (int i = 0; i < tileArrayLength; i++) {
 		
-		sf::Vector2f newPos = Get2DPositionWithIndex(i);
+		//two dimensional "array position" 
+		sf::Vector2f index2DPosition = Get2DPositionWithIndex(i);
+		sf::Vector2<float> position = sf::Vector2<float>((index2DPosition.x * (WINDOW_WIDTH / WINDOW_SEGMENTS_WIDTH)) + Tile::OUTLINE_THICKNESS + (m_TileDimensions.x / 2.0f),
+														(index2DPosition.y * (WINDOW_HEIGHT / WINDOW_SEGMENTS_HEIGHT)) / 3.0f + (m_TileDimensions.y / 2.0f));
+
+		//what sort of tile is this?
 		TileType newType = TileType::TileTCount;
 		float randomNumber = distr(gen) / 100.0f;
 		if (randomNumber < 0.2f) {
@@ -447,8 +537,22 @@ bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
 		else {
 			newType = TileType::NoEvent;
 		}
-		Tile* tile = new Tile(newPos, newType, tileTypeToColor[newType]);
-		tiles[i] = tile;
+
+		//tile visual shape creation
+		sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f * Tile::OUTLINE_THICKNESS, 2.0f * Tile::OUTLINE_THICKNESS);
+		sf::RectangleShape* rect = new sf::RectangleShape(size);
+
+
+
+		rect->setOrigin(m_TileDimensions.x / 2.0f, m_TileDimensions.y / 2.0f);
+		rect->setFillColor(tileTypeToColor[newType]);
+		rect->setOutlineColor(sf::Color::White);
+		rect->setOutlineThickness(Tile::OUTLINE_THICKNESS);
+		rect->setPosition(position);
+		/*	tileShapes[i] = rect;*/
+		int visID = renderManager->AddShape(rect);
+		Tile* newTile = new Tile(position, newType, tileTypeToColor[newType], visID);
+		tiles[i] = newTile;
 		
 		
 	}
@@ -463,7 +567,7 @@ sf::Vector2f Get2DPositionWithIndex(int index) {
 	return position;
 }
 
-bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[], sf::RenderWindow& window) {
+bool CheckForInput(Ball& ball, Tile* gameTiles[], sf::RenderWindow& window) {
 
 	//check all bools for progession
 
@@ -480,7 +584,7 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 	{
 		// left key is pressed: move our character
-		m_PlayerPositionChanges.x -= m_PMovementIncrements;
+		m_PlayerPositionChanges.x -= BASE_MOVEMENT_SPEED;
 		
 		return true;
 	}
@@ -488,7 +592,7 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 	{
 		// left key is pressed: move our character
-		m_PlayerPositionChanges.x += m_PMovementIncrements;
+		m_PlayerPositionChanges.x += BASE_MOVEMENT_SPEED;
 		
 		return true;
 	}
@@ -506,12 +610,12 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && inputAllowed[1]) {
-		m_PauseGame = !m_PauseGame;
-		std::cout <<"Game Pause: " << m_PauseGame <<std::endl;
+		m_GamePaused = !m_GamePaused;
+		std::cout <<"Game Pause: " << m_GamePaused <<std::endl;
 		inputAllowed[1] = false;
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && m_PauseGame && inputAllowed[2]) {
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && m_GamePaused && inputAllowed[2]) {
 		m_CalculateOneFrame = true;
 		
 		inputAllowed[2] = false;
@@ -526,7 +630,7 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 		inputAllowed[8] = false;
 	}
 
-	if (m_PauseGame) {
+	if (m_GamePaused) {
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && inputAllowed[3]) {
 
 			moveUp = true;
@@ -554,12 +658,11 @@ bool CheckForInput(Ball& ball,sf::RectangleShape tileShapes[], Tile* gameTiles[]
 }
 
 
-
-float clip(float n, float lower, float upper) {
+float clamp(float n, float lower, float upper) {
 	return std::max(lower, std::min(n, upper));
 }
 
-
+//F ball.h
 bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition)
 {
 	
@@ -645,32 +748,21 @@ bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vec
 			playerCollideVertical = true;
 		}
 
-		/*bool verticalIsClosest = (distanceY < distanceX);
-		if (verticalIsClosest) {
-			playerCollideVertical = true;
-		}
-		else {
-			playerCollideHorizontal = true;
-		}*/
 		
 	}
 
-	
-	ball.ballVisual->setFillColor(sf::Color::Red);
+
 
 	if (cornerWasHit) {
 		*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y* -1.0f);
 		return true;
 	}
 	if (playerCollideVertical) {
-		ball.ballVisual->setFillColor(sf::Color::Yellow);
-		/**bounceDirection = sf::Vector2f(m_BallDirection.x, m_BallDirection.y* -1.0f);*/
 		*bounceDirection = CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision, ball);
 		return true;
 	}
 
 	if (playerCollideHorizontal) {
-		ball.ballVisual->setFillColor(sf::Color::Magenta);
 		*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
 		return true;
 	}
@@ -684,8 +776,8 @@ bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vec
 
 void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector) {
 
-	sf::Vector2f leftPos = sf::Vector2f(m_PlayerPosition.x - (m_PlayerDimensions.x * m_PlayerRimPercentage), m_PlayerPosition.y);
-	sf::Vector2f rightPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * m_PlayerRimPercentage), m_PlayerPosition.y);
+	sf::Vector2f leftPos = sf::Vector2f(m_PlayerPosition.x - (m_PlayerDimensions.x * PLAYER_RIM_PERCENTAGE), m_PlayerPosition.y);
+	sf::Vector2f rightPos = sf::Vector2f(m_PlayerPosition.x + (m_PlayerDimensions.x * PLAYER_RIM_PERCENTAGE), m_PlayerPosition.y);
 	//left coords & color
 	m_PlayerNormalLineCoords[0].position = leftPos;
 	m_PlayerNormalLineCoords[0].color = sf::Color::Cyan;
@@ -728,11 +820,11 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 	sf::Vector2f leftRimNormal = sf::Vector2f(leftAngleInRadianX , leftAngleInRadianY);
 	sf::Vector2f rightRimNormal =  sf::Vector2f(rightAngleInRadianX , rightAngleInRadianY);
 
-	m_PlayerNormalLineCoords[0].position = m_PlayerPosition;
+	/*m_PlayerNormalLineCoords[0].position = m_PlayerPosition;
 	m_PlayerNormalLineCoords[0].color = sf::Color::Red;
 
 	m_PlayerNormalLineCoords[1].position = m_PlayerPosition + (rightRimNormal * 100.0f);
-	m_PlayerNormalLineCoords[1].color = sf::Color::Red;
+	m_PlayerNormalLineCoords[1].color = sf::Color::Red;*/
 
 
 	//player collision ball bounce vector calculation based on where on the player it lands
@@ -740,7 +832,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 	if (type == CollisionType::VerticalCollision) {
 		float proportionalXPos = futureBallPosition.x - (m_PlayerPosition.x - (m_PlayerDimensions.x /2.0f));
 		float percentageOnXAxis =proportionalXPos/m_PlayerDimensions.x;
-		if (percentageOnXAxis < m_PlayerRimPercentage) {
+		if (percentageOnXAxis < PLAYER_RIM_PERCENTAGE) {
 			//cos-1 [ (a · b) / (|a| |b|) ]
 			
 			float ballDirTimesNormal = (ball.ballDirection.x * leftRimNormal.x) + (ball.ballDirection.y * leftRimNormal.y);
@@ -752,7 +844,7 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
 			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
 		}
-		if (percentageOnXAxis > 1.0f - m_PlayerRimPercentage ) {
+		if (percentageOnXAxis > 1.0f - PLAYER_RIM_PERCENTAGE ) {
 
 			float ballDirTimesNormal = (ball.ballDirection.x * rightRimNormal.x) + (ball.ballDirection.y * rightRimNormal.y);
 			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
@@ -776,41 +868,9 @@ sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionTyp
 	return newBallDirectionVector;
 }
 
-bool CornerCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.ballRadius)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.ballRadius)) { return false; }
-	
-	float cornerDistance_sq = ((circleDistance.x - m_PlayerDimensions.x / 2) * (circleDistance.x - m_PlayerDimensions.x / 2)) +
-		((circleDistance.y - m_PlayerDimensions.y / 2) * (circleDistance.y - m_PlayerDimensions.y / 2));
 
-	if ((cornerDistance_sq <= (ball.ballRadius * ball.ballRadius))) { return true; }
-	return false;
-}
-bool VerticalCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.ballRadius)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.ballRadius)) { return false;}
-	/*if (circleDistance.x < (m_PlayerDimensions.x / 2 + m_BallDiametre)) {*/
-		if (circleDistance.y <= ((m_PlayerDimensions.y / 2) + ball.ballRadius)) { return true; }
-	/*}*/
-	
-	return false;
-	
-}
 
-bool HorizontalCollisionCheck(sf::Vector2f circleDistance, Ball& ball) {
-	if (circleDistance.y > (m_PlayerDimensions.y / 2 + ball.ballRadius)) { return false; }
-	if (circleDistance.x > (m_PlayerDimensions.x / 2 + ball.ballRadius)) { return false; }
-
-	/*if (circleDistance.y < (m_PlayerDimensions.y / 2 + m_BallDiametre))
-	{*/
-		if (circleDistance.x <= (m_PlayerDimensions.x / 2) + ball.ballRadius) { return true;}
-	/*}*/
-	
-	return false;
-	
-}
-
-bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape* tileShapes,  Tile** gametiles, sf::Vector2f* bounceDirection) {
+bool CheckForBallTileCollisionAndMovementChanges(Ball& ball,  Tile** gametiles, sf::Vector2f* bounceDirection) {
 
 
 	bool playerCollideVertical = false;
@@ -821,12 +881,12 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 
 	
 
-	for (int i = 0; i < tileArrayLength; i++) {
+	for (int i = 0; i < TILE_ARRAY_LENGTH; i++) {
 		bool alive = gametiles[i]->isAlive;
 		if (!alive) {
 			continue;
 		}
-		sf::Vector2f currentTilePosition = tileShapes[i].getPosition();
+		sf::Vector2f currentTilePosition = gametiles[i]->position;
 		float testingX = futureBallPosition.x;
 		float testingY = futureBallPosition.y;
 		
@@ -871,27 +931,26 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 		}
 
 
-		ball.ballVisual->setFillColor(sf::Color::Red);
+
 		if (playerCollideVertical) {
-			ball.ballVisual->setFillColor(sf::Color::Yellow);
+			
 			*bounceDirection = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
 			gametiles[i]->hitCount -= 1;
 			int currentHitCount = gametiles[i]->hitCount;
 			if (currentHitCount <= 0) {
 				gametiles[i]->isAlive = false;
-				DropTileEffect(*gametiles[i], &tileShapes[i]);
+				DropTileEffect(*gametiles[i]);
 			}
 			return true;
 		}
 
 		if (playerCollideHorizontal) {
-			ball.ballVisual->setFillColor(sf::Color::Magenta);
 			*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
 			gametiles[i]->hitCount -= 1;
 			int currentHitCount = gametiles[i]->hitCount;
 			if (currentHitCount <= 0) {
 				gametiles[i]->isAlive = false;
-				DropTileEffect(*gametiles[i], &tileShapes[i]);
+				DropTileEffect(*gametiles[i]);
 			}
 			return true;
 		}
@@ -901,10 +960,10 @@ bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::RectangleShape*
 	
 }
 
-bool DropTileEffect(Tile& tile, sf::RectangleShape* drawnTile) {
+bool DropTileEffect(Tile& tile) {
 	sf::RectangleShape effectRect = sf::RectangleShape(sf::Vector2f(10.0f, 10.0f));
 	effectRect.setSize(sf::Vector2f(10.0f, 10.0f));
-	effectRect.setPosition(drawnTile->getPosition());
+	effectRect.setPosition(tile.position);
 	effectRect.setFillColor(tileTypeToColor[tile.tileType]);
 	DroppingEffect newEffect = DroppingEffect(tile.tileType, effectRect);
 	m_DroppingEffects.push_back(newEffect);
@@ -986,5 +1045,6 @@ bool CheckForEffectUsage() {
 
 float lerp(float a, float b, float f)
 {
+	//F (1 - f) * a + f * b;
 	return a + f * (b - a);
 }
