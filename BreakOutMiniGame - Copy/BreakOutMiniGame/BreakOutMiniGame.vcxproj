@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="RenderManager.cpp" />
     <ClCompile Include="Tile.cpp" />
   </ItemGroup>
@@ -27,6 +28,7 @@
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Main_Fuctions.h" />
     <ClInclude Include="MathHelper.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="RenderManager.h" />
     <ClInclude Include="Tile.h" />
     <ClInclude Include="TileType.h" />
