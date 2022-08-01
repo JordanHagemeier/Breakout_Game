@@ -11,7 +11,7 @@
 
 class RenderManager {
 
-	std::map<int, sf::Shape*> m_ShapesToRender;
+	std::map<int, std::shared_ptr<sf::Shape>> m_ShapesToRender;
 	sf::RenderWindow* m_CurrentWindow; 
 	int m_IdCounter = 0;
 	
@@ -25,7 +25,7 @@ class RenderManager {
 
 		bool Render();
 		void SetRenderWindow(sf::RenderWindow& window) { m_CurrentWindow = &window; }
-		sf::Shape* GetShape(int id);
-		int AddShape(sf::Shape* shape);
+		std::shared_ptr<sf::Shape> GetShape(int id);
+		int AddShape(std::shared_ptr<sf::Shape> shape);
 		bool DeleteShape(int id);
 };

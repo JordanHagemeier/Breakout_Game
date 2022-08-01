@@ -255,7 +255,8 @@ int main()
 }
 
 bool SpawnBall() {
-	sf::CircleShape* ball_Visual = new sf::CircleShape(0.0f);
+	sf::CircleShape* ballNotSharedPtr = new sf::CircleShape(0.0f);
+	std::shared_ptr<sf::CircleShape> ball_Visual = std::make_shared<sf::CircleShape>(*ballNotSharedPtr);
 	int ballVisID = renderManager->AddShape(ball_Visual);
 	Ball* ball = new Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, 0.05f, scalingFactor, *ball_Visual, ballVisID);
 	ball->ballPosition = m_BallStarterPosition_UNALTERED;
@@ -281,7 +282,10 @@ bool MoveBallThroughInput(Ball& ball) {
 
 	if (inputGiven) {
 		ball.ballPosition = ball.ballPosition + (ball.ballDirection * 2.0f);
-		sf::CircleShape* ballVisual = (sf::CircleShape*)renderManager->GetShape(ball.ballVisualID);
+
+
+		std::shared_ptr<sf::CircleShape> ballVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(ball.ballVisualID));
+		//std::shared_ptr<sf::Shape> ballVisual = (std::shared_ptr<sf::Shape>)renderManager->GetShape(ball.ballVisualID);
 		ballVisual->setPosition(ball.ballPosition);
 	}
 	
@@ -299,9 +303,10 @@ bool SetUpInputCountingSystem() {
 	return true;
 }
 
+//Player.h
 bool UpdatePlayerPosition() {
 
-	m_PlayerPosition = sf::Vector2f(clamp((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f + (m_PlayerDimensions.x / 2.0f), WINDOW_WIDTH - (m_PlayerDimensions.x / 2.0f)), m_PlayerPosition.y);
+	m_PlayerPosition = sf::Vector2f(MathHelper::Clamp((m_PlayerPositionChanges.x + m_PlayerPosition.x), 0.0f + (m_PlayerDimensions.x / 2.0f), WINDOW_WIDTH - (m_PlayerDimensions.x / 2.0f)), m_PlayerPosition.y);
 	m_PlayerPositionChanges = sf::Vector2f(0.0f, 0.0f);
 	m_CurrentInputToWorkWith = false;
 	return true;
@@ -315,9 +320,9 @@ bool DoGameLoopCalculations(Ball& ball, Tile* gametiles[]) {
 		m_PlayerPositionChanges.x = m_PlayerPositionChanges.x * m_PlayerHeightenedSpeedMultiplier;
 		float effectDurationPercentage = (float)m_PlayerSpeedHeightenedTimer / (float)m_PlayerSpeedHeightenedDuration;
 
-		m_PlayerTile->baseColor.r = lerp(m_PSpeedHeightenedEffectColor.r, m_PlayerTile->baseColor.r, effectDurationPercentage);
-		m_PlayerTile->baseColor.g = lerp(m_PSpeedHeightenedEffectColor.g, m_PlayerTile->baseColor.g, effectDurationPercentage);
-		m_PlayerTile->baseColor.b = lerp(m_PSpeedHeightenedEffectColor.b, m_PlayerTile->baseColor.b, effectDurationPercentage);
+		m_PlayerTile->baseColor.r = MathHelper::Lerp(m_PSpeedHeightenedEffectColor.r, m_PlayerTile->baseColor.r, effectDurationPercentage);
+		m_PlayerTile->baseColor.g = MathHelper::Lerp(m_PSpeedHeightenedEffectColor.g, m_PlayerTile->baseColor.g, effectDurationPercentage);
+		m_PlayerTile->baseColor.b = MathHelper::Lerp(m_PSpeedHeightenedEffectColor.b, m_PlayerTile->baseColor.b, effectDurationPercentage);
 		if (m_PlayerSpeedHeightenedTimer < 0.0f) {
 			m_PlayerSpeedIsHeightened = false;
 			m_PlayerTile->baseColor = m_PStarterColor;
@@ -440,25 +445,13 @@ bool RenderGameData(sf::RenderWindow& window,  Tile* gametiles[]) {
 
 	//draw tiles
 	for (int j = 0; j < TILE_ARRAY_LENGTH; j++) {
-		sf::RectangleShape* currentTile = (sf::RectangleShape*)renderManager->GetShape(gametiles[j]->tileVisualID);
-		float currentHitPercentage = 1.0f - (float)gametiles[j]->hitCount / gametiles[j]->allowedHits;
-		sf::Uint8 redPercentage = lerp(gametiles[j]->baseColor.r, m_FinalHitColor.r, currentHitPercentage);
-		sf::Uint8 greenPercentage = lerp(gametiles[j]->baseColor.g, m_FinalHitColor.g, currentHitPercentage);
-		sf::Uint8 bluePercentage = lerp(gametiles[j]->baseColor.b, m_FinalHitColor.b, currentHitPercentage);
-		sf::Uint8 alphaPercentage = 255;
-
-		sf::Color color = sf::Color(redPercentage, greenPercentage, bluePercentage, alphaPercentage);
-		currentTile->setFillColor(color);
-		if (!gametiles[j]->isAlive) {
-			/*window.draw(currentTile);*/
-			currentTile->setFillColor(sf::Color::Black);
-			currentTile->setOutlineColor(sf::Color::Black);
-		}
+		gametiles[j]->UpdateTileColorBasedOnHits(*renderManager);
 	}
 	//draw tile effects which are falling down
 	DrawTileEffects(window);
 
 	//draw player tile
+	//Player.cpp probably 
 	sf::RectangleShape playerTileMiddle			= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * (1.0f - PLAYER_RIM_PERCENTAGE), m_PlayerDimensions.y));
 	sf::RectangleShape playerTileLeft		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * PLAYER_RIM_PERCENTAGE, m_PlayerDimensions.y));
 	sf::RectangleShape playerTileRight		= sf::RectangleShape(sf::Vector2f(m_PlayerDimensions.x * PLAYER_RIM_PERCENTAGE, m_PlayerDimensions.y));
@@ -487,7 +480,11 @@ bool RenderGameData(sf::RenderWindow& window,  Tile* gametiles[]) {
 	window.draw(playerTileRight);
 
 	for (int i = 0; i < Balls_In_Game.size(); i++) {
-		sf::CircleShape* currentBallVisual = (sf::CircleShape*)renderManager->GetShape(Balls_In_Game[i]->ballVisualID);
+		//std::shared_ptr<sf::CircleShape> currentBallVisual = std::dynamic_pointer_cast<sf::CircleShape>(renderManager->GetShape(Balls_In_Game[i]->ballVisualID));
+		std::shared_ptr<sf::CircleShape> currentBallVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(Balls_In_Game[i]->ballVisualID));
+		//sf::RectangleShape* currentTile = (sf::RectangleShape*) renderManager.GetShape(tileVisualID);
+
+		//std::shared_ptr<sf::Shape>currentBallVisual = renderManager->GetShape(Balls_In_Game[i]->ballVisualID);
 		currentBallVisual->setPosition(Balls_In_Game[i]->ballPosition);
 
 	}
@@ -540,17 +537,22 @@ bool FillTileArrayWithData(Tile* tiles[], int tileArrayLength) {
 
 		//tile visual shape creation
 		sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f * Tile::OUTLINE_THICKNESS, 2.0f * Tile::OUTLINE_THICKNESS);
+
+		//sf::CircleShape* ballNotSharedPtr = new sf::CircleShape(0.0f);
+		//std::shared_ptr<sf::CircleShape> ball_Visual = std::make_shared<sf::CircleShape>(ballNotSharedPtr);
+
+
 		sf::RectangleShape* rect = new sf::RectangleShape(size);
+		std::shared_ptr<sf::RectangleShape>rect_shared = std::make_shared<sf::RectangleShape>(*rect);
+		rect->setSize(size);
 
-
-
-		rect->setOrigin(m_TileDimensions.x / 2.0f, m_TileDimensions.y / 2.0f);
-		rect->setFillColor(tileTypeToColor[newType]);
-		rect->setOutlineColor(sf::Color::White);
-		rect->setOutlineThickness(Tile::OUTLINE_THICKNESS);
-		rect->setPosition(position);
+		rect_shared->setOrigin(m_TileDimensions.x / 2.0f, m_TileDimensions.y / 2.0f);
+		rect_shared->setFillColor(tileTypeToColor[newType]);
+		rect_shared->setOutlineColor(sf::Color::White);
+		rect_shared->setOutlineThickness(Tile::OUTLINE_THICKNESS);
+		rect_shared->setPosition(position);
 		/*	tileShapes[i] = rect;*/
-		int visID = renderManager->AddShape(rect);
+		int visID = renderManager->AddShape(rect_shared);
 		Tile* newTile = new Tile(position, newType, tileTypeToColor[newType], visID);
 		tiles[i] = newTile;
 		
@@ -658,9 +660,7 @@ bool CheckForInput(Ball& ball, Tile* gameTiles[], sf::RenderWindow& window) {
 }
 
 
-float clamp(float n, float lower, float upper) {
-	return std::max(lower, std::min(n, upper));
-}
+
 
 //F ball.h
 bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f playerTilePos, sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition)
@@ -1019,6 +1019,7 @@ TileType CheckEffectWithPlayerCollision(bool* collisionBool) {
 	return foundType;
 }
 
+//I NEED A DELETE FUCTION FOR WHEN THE EFFECT FALLS OUT OF WINDOW SCOPE
 bool CheckForEffectUsage() {
 	bool collisionPlayerWithEffect = false;
 	TileType effectType = CheckEffectWithPlayerCollision(&collisionPlayerWithEffect);
@@ -1043,8 +1044,3 @@ bool CheckForEffectUsage() {
 	return false;
 }
 
-float lerp(float a, float b, float f)
-{
-	//F (1 - f) * a + f * b;
-	return a + f * (b - a);
-}

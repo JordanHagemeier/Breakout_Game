@@ -3,9 +3,9 @@
 bool RenderManager::Render() {
 	//iterate over all shapes in m_ShapesToRender
 	//Draw to Window
-	std::map<int, sf::Shape*>::iterator it = m_ShapesToRender.begin();
+	std::map<int, std::shared_ptr<sf::Shape>>::iterator it = m_ShapesToRender.begin();
 	while (it != m_ShapesToRender.end()) {
-		sf::Shape* currentShape = m_ShapesToRender[it->first];
+		std::shared_ptr <sf::Shape > currentShape = m_ShapesToRender[it->first];
 		m_CurrentWindow->draw(*currentShape);
 		it++;
 	}
@@ -14,11 +14,11 @@ bool RenderManager::Render() {
 	return true;
 }
 
-sf::Shape* RenderManager::GetShape(int id){
+std::shared_ptr<sf::Shape> RenderManager::GetShape(int id){
 
 	return m_ShapesToRender[id];
 }
-int RenderManager::AddShape(sf::Shape* shape) {
+int RenderManager::AddShape(std::shared_ptr<sf::Shape> shape) {
 	m_IdCounter++;
 	m_ShapesToRender[m_IdCounter] = shape;
 	return m_IdCounter;

@@ -41,5 +41,8 @@
     <ClInclude Include="TileType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MathHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

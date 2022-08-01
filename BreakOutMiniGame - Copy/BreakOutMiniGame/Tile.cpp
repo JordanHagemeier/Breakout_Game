@@ -29,14 +29,16 @@ bool Tile::UpdateTileColorBasedOnHits(RenderManager& renderManager) {
 		renderManager.DeleteShape(tileVisualID);
 		return true;
 	}
-	/*float currentHitPercentage = 1.0f - (float)hitCount / allowedHits;
-	sf::Uint8 redPercentage = lerp(baseColor.r, maxHitColor.r, currentHitPercentage);
-	sf::Uint8 greenPercentage = lerp(baseColor.g, maxHitColor.g, currentHitPercentage);
-	sf::Uint8 bluePercentage = lerp(baseColor.b, maxHitColor.b, currentHitPercentage);
+	float currentHitPercentage = 1.0f - (float)hitCount / allowedHits;
+	sf::Uint8 redPercentage = MathHelper::Lerp(baseColor.r, maxHitColor.r, currentHitPercentage);
+	sf::Uint8 greenPercentage = MathHelper::Lerp(baseColor.g, maxHitColor.g, currentHitPercentage);
+	sf::Uint8 bluePercentage =  MathHelper::Lerp(baseColor.b, maxHitColor.b, currentHitPercentage);
 	sf::Uint8 alphaPercentage = 255;
 
 	sf::Color color = sf::Color(redPercentage, greenPercentage, bluePercentage, alphaPercentage);
-	sf::RectangleShape* currentTile = (sf::RectangleShape*) renderManager.GetShape(tileVisualID);
-	currentTile->setFillColor(color);*/
+	std::shared_ptr<sf::RectangleShape> currentTile = std::dynamic_pointer_cast<sf::RectangleShape>(renderManager.GetShape(tileVisualID));
+	//sf::RectangleShape* currentTile = (sf::RectangleShape*) renderManager.GetShape(tileVisualID);
+	currentTile->setFillColor(color);
+
 	return true;
 }

@@ -3,7 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include "TileType.h"
 #include "RenderManager.h"
-#include <cmath>
+#include "MathHelper.h"
 
 //setup tile gameobjects in array
 //-> is this thing on?
@@ -25,11 +25,11 @@ public:
 	sf::Color		maxHitColor = sf::Color::Red;
 
 	int				tileVisualID = -1;
+	int				hitCount = 0;
+	int				allowedHits = 0;
 	bool			isAlive = true;
 	sf::Color		baseColor = sf::Color::White;
 	sf::Vector2f	position = sf::Vector2f(0.0f, 0.0f);
-	int				hitCount = 0;
-	int				allowedHits = 0;
 	TileType		tileType = TileType::AddedBall; 
 	
 	Tile() = default;
