@@ -22,6 +22,7 @@
 class Tile {
 public:
 	static const float OUTLINE_THICKNESS;
+	static sf::Vector2f TILE_DIMENSIONS;
 	sf::Color		maxHitColor = sf::Color::Red;
 
 	int				tileVisualID = -1;
@@ -39,17 +40,3 @@ public:
 	bool UpdateTileColorBasedOnHits(RenderManager& renderManager);
 };
 
-class DroppingEffect {
-public:
-	TileType			effectType = TileType::NoEvent;
-	sf::RectangleShape visual;
-
-	DroppingEffect() {}
-	DroppingEffect(TileType type) {
-		effectType = type;
-	}
-	DroppingEffect(TileType type, sf::RectangleShape vis) {
-		visual = vis;
-		effectType = type;
-	}
-};

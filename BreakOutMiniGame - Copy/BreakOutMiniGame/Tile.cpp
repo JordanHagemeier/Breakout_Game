@@ -2,6 +2,7 @@
 
 const float Tile::OUTLINE_THICKNESS = 0.5f;
 
+
 Tile::Tile(sf::Vector2f pos, TileType type, sf::Color col, int id) {
 
 	tileVisualID = id;
