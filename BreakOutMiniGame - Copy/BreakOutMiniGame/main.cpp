@@ -111,7 +111,6 @@ bool moveDown = false;
 bool moveRight = false;
 bool moveLeft = false;
 
-//std::vector<Ball*> m_Balls_In_Game; 
 std::map<TileType, sf::Color> m_TileTypeToColor;
 std::vector<Player*> m_Players;
 
@@ -126,7 +125,7 @@ TileManager* tileManager;
 BallManager* ballManager; 
 GameManager* gameManager;
 
-std::vector<ManagerInterface*> m_Managers;
+
 int main()
 {
 	
@@ -205,16 +204,7 @@ int main()
 		it->second->TickBeforeStart();
 			
 	}
-	////gather all managers
-	////this should be obsolete because of the game manager singleton
-	//m_Managers.push_back(renderManager);
-	//m_Managers.push_back(tileManager);
-	//m_Managers.push_back(droppingEffectManager);
-	//m_Managers.push_back(ballManager);
 
-	//for (auto& manager : m_Managers) {
-	//	manager->TickBeforeStart();
-	//}
 
 	//Create player tile
 	CreateNewPlayer();
@@ -251,21 +241,21 @@ int main()
 		}
 
 		if (m_CalculateOneFrame) {
-			DoGameLoopCalculations(*ballManager->m_Balls_In_Use[0], tileManager->m_Tiles);
+			DoGameLoopCalculations();
 			//std::cout << "Calculate one frame" << std::endl;
 			m_CalculateOneFrame = false;
 		}
 
 		if (m_GamePaused) {
 			MoveBallThroughInput(*ballManager->m_Balls_In_Use[0]);
-			RenderGameData(window, tileManager->m_Tiles);
+			RenderGameData(window);
 			
 			continue;
 		}
 
 		
-		DoGameLoopCalculations(*ballManager->m_Balls_In_Use[0], tileManager->m_Tiles);
-		RenderGameData(window, tileManager->m_Tiles);
+		DoGameLoopCalculations();
+		RenderGameData(window);
 	}
 
 	return 0;
@@ -358,7 +348,7 @@ bool CheckPlayersForBuffEffect() {
 	return true;
 }
 
-bool DoGameLoopCalculations(Ball& ball, std::vector<Tile*> gametiles) {
+bool DoGameLoopCalculations() {
 
 	CheckPlayersForBuffEffect();
 	//Update Player Position
@@ -382,27 +372,10 @@ bool DoGameLoopCalculations(Ball& ball, std::vector<Tile*> gametiles) {
 	return true;
 }
 
-bool RenderGameData(sf::RenderWindow& window, std::vector<Tile*> gametiles) {
+bool RenderGameData(sf::RenderWindow& window) {
 
-	//Update Tiles 
 
 	window.clear();
-
-
-	//draw tiles
-	for (int j = 0; j < TILE_ARRAY_LENGTH; j++) {
-		gametiles[j]->UpdateTileColorBasedOnHits(*renderManager);
-	}
-
-	
-
-	for (int i = 0; i < ballManager->m_Balls_In_Use.size(); i++) {
-		
-		std::shared_ptr<sf::CircleShape> currentBallVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(ballManager->m_Balls_In_Use[i]->ballVisualID));
-		currentBallVisual->setPosition(ballManager->m_Balls_In_Use[i]->ballPosition);
-
-	}
-
 
 	//draw debugging lines
 	for (int k = 0; k < 8; k += 2) {

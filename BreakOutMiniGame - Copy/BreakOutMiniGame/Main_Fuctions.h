@@ -14,8 +14,8 @@ bool CreateNewPlayer();
 bool SetUpInputCountingSystem();
 
 bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& window);
-bool DoGameLoopCalculations(Ball& ball, std::vector<Tile*> gametiles);
-bool RenderGameData(sf::RenderWindow& window, std::vector<Tile*> gametiles);
+bool DoGameLoopCalculations();
+bool RenderGameData(sf::RenderWindow& window);
 
 bool MoveBallThroughInput(Ball& ball);
 void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector);

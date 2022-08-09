@@ -32,6 +32,7 @@ class BallManager : public ManagerInterface {
 		virtual bool HasFinishedInitialization(){ return m_InitializationIsDone;}
 		virtual void Tick(){ 
 			UpdateBallBehavior();
+			UpdateBallVisualPositions();
 		}
 		virtual ManagerType GetManagerType() { return ManagerType::ballManager_T; }
 		void CreateNewBall();
@@ -42,4 +43,6 @@ class BallManager : public ManagerInterface {
 		bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition);
 		sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Ball& ball, Player& player);
 		bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::Vector2f* bounceDirection);
+
+		void UpdateBallVisualPositions();
 };

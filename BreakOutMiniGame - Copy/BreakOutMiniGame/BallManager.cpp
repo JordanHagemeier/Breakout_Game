@@ -338,3 +338,12 @@ bool BallManager::CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::Ve
 	return false;
 
 }
+
+void BallManager::UpdateBallVisualPositions() {
+	for (Ball* ball : m_Balls_In_Use) {
+		RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
+		std::shared_ptr<sf::CircleShape> currentBallVisual = std::static_pointer_cast<sf::CircleShape>(renderManager.GetShape(ball->ballVisualID));
+		currentBallVisual->setPosition(ball->ballPosition);
+
+	}
+}
