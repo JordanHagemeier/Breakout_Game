@@ -22,7 +22,6 @@
 class Tile {
 public:
 	static const float OUTLINE_THICKNESS;
-	static sf::Vector2f TILE_DIMENSIONS;
 	sf::Color		maxHitColor = sf::Color::Red;
 
 	int				tileVisualID = -1;

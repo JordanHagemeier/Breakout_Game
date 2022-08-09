@@ -1,18 +1,20 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
-#include "Tile.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <cmath>
+#include "Tile.h"
+#include "Ball.h"
+#include "DroppingEffect.h"
 #include "Main_Fuctions.h"
 #include <algorithm>
 #include <chrono>
-#include "Ball.h"
 #include <list>
 #include <random>
 #include "RenderManager.h"
-#include "DroppingEffect.h"
 #include "TileManager.h"
+#include "BallManager.h"
+#include "GameManager.h"
 
 
 /* //F
@@ -109,8 +111,7 @@ bool moveDown = false;
 bool moveRight = false;
 bool moveLeft = false;
 
-std::vector<Ball*> m_Balls_In_Game; //F inconsistent
-//std::vector<DroppingEffect> m_DroppingEffects;
+//std::vector<Ball*> m_Balls_In_Game; 
 std::map<TileType, sf::Color> m_TileTypeToColor;
 std::vector<Player*> m_Players;
 
@@ -122,7 +123,10 @@ sf::Vertex m_PlayerNormalLineCoords [8];
 RenderManager* renderManager; 
 DroppingEffectManager* droppingEffectManager;
 TileManager* tileManager;
+BallManager* ballManager; 
+GameManager* gameManager;
 
+std::vector<ManagerInterface*> m_Managers;
 int main()
 {
 	
@@ -154,27 +158,69 @@ int main()
 	m_NoHitColor = sf::Color::Blue;
 	m_FinalHitColor = sf::Color::Red;
 
+
+	///-------------------------------
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), "SFML works!");
-	renderManager = new RenderManager(window);
 
-	//Create tiles + tile effects
-	tileManager = new TileManager(sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT), m_CoveredWindowPercentage);
-	tileManager->InitializeTileVector(*renderManager, m_TileTypeToColor);
-	sf::Vector2f currentTileDims = TileManager::TILE_DIMENSIONS;
-	/*Tile* gametiles[TILE_ARRAY_LENGTH];*/
-	//InitializeTileArrayWithData(gametiles, TILE_ARRAY_LENGTH);
+	//Manager Creation
+	//1) Render Manager, which is essential for all others
+	renderManager = new RenderManager(window, sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT), scalingFactor);
 
-	droppingEffectManager = new DroppingEffectManager(tileManager->m_Tiles, TILE_ARRAY_LENGTH, *renderManager);
+	//2)Tile Manager
+	tileManager = new TileManager();
+	
+
+	//3) Effect Manager for Tile Dropping Effects
+	droppingEffectManager = new DroppingEffectManager(TILE_ARRAY_LENGTH);
+
+	//4) Ball Manager
+	ballManager = new BallManager();
+
+	//(optional: 5) Player Manager?)
+
+	//6) Game Manager which combines all of the above
+	GameManagerInfo info;
+	
+	info.balls = &ballManager->m_Balls_In_Use;
+	info.tiles = &tileManager->m_Tiles;
+	info.players = &m_Players;
+	info.tileTypeToColorMap = m_TileTypeToColor;
+	
+
+	std::map<ManagerType, ManagerInterface*> managersMap;
+	managersMap[ManagerType::ballManager_T] = ballManager;
+	managersMap[ManagerType::tileManager_T] = tileManager;
+	managersMap[ManagerType::droppingEffectManager_T] = droppingEffectManager;
+	managersMap[ManagerType::renderManager_T] = renderManager;
+	
+	info.managerMap = managersMap;
+
+	gameManager = new GameManager(info);
+
+	
+
+	//gather all managers
+	//this should be obsolete because of the game manager singleton
+	m_Managers.push_back(renderManager);
+	m_Managers.push_back(tileManager);
+	m_Managers.push_back(droppingEffectManager);
+	m_Managers.push_back(ballManager);
+
+	for (auto& manager : m_Managers) {
+		manager->TickBeforeStart();
+	}
 
 	//Create player tile
 	CreateNewPlayer();
 
 	//create ball
-	CreateNewBall();
+	/*CreateNewBall();*/
 	
 	//setup input arrays
 	SetUpInputCountingSystem();
 
+	
+	
 	while (window.isOpen())
 	{
 
@@ -197,52 +243,37 @@ int main()
 		//Check for Input
 		if (!m_NewInputAvailable)
 		{
-			m_NewInputAvailable = CheckForInput(*m_Balls_In_Game[0], tileManager->m_Tiles, window);
+			m_NewInputAvailable = CheckForInput(*ballManager->m_Balls_In_Use[0], tileManager->m_Tiles, window);
 		}
 
 		if (m_CalculateOneFrame) {
-			DoGameLoopCalculations(*m_Balls_In_Game[0], tileManager->m_Tiles);
+			DoGameLoopCalculations(*ballManager->m_Balls_In_Use[0], tileManager->m_Tiles);
 			//std::cout << "Calculate one frame" << std::endl;
 			m_CalculateOneFrame = false;
 		}
 
 		if (m_GamePaused) {
-			MoveBallThroughInput(*m_Balls_In_Game[0]);
+			MoveBallThroughInput(*ballManager->m_Balls_In_Use[0]);
 			RenderGameData(window, tileManager->m_Tiles);
 			
 			continue;
 		}
 
 		
-		DoGameLoopCalculations(*m_Balls_In_Game[0], tileManager->m_Tiles);
+		DoGameLoopCalculations(*ballManager->m_Balls_In_Use[0], tileManager->m_Tiles);
 		RenderGameData(window, tileManager->m_Tiles);
 	}
 
 	return 0;
 }
 
-bool CreateNewBall() {
-	sf::CircleShape* ballNotSharedPtr = new sf::CircleShape(0.0f);
-	std::shared_ptr<sf::CircleShape> ball_Visual = std::make_shared<sf::CircleShape>(*ballNotSharedPtr);
-	int ballVisID = renderManager->AddShape(ball_Visual);
-	Ball* ball = new Ball(2.0f * scalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, scalingFactor, *ball_Visual, ballVisID);
-
-	ball->ballPosition = m_BallStarterPosition_UNALTERED;
-	ball->ballDirection = sf::Vector2f(std::cos(ball->ballAngle) * Ball::BALL_BASE_SPEED, std::sin(ball->ballAngle) * Ball::BALL_BASE_SPEED);
-
-	ball_Visual->setRadius(ball->ballRadius);
-	ball_Visual->setFillColor(sf::Color::Red);
-	ball_Visual->setPosition(ball->ballPosition);
-
-	m_Balls_In_Game.push_back(ball);
-	return true;
-}
 
 bool CreateNewPlayer() {
 	sf::Vector2f dimensions = sf::Vector2f(55.0f, 10.0f) * scalingFactor;
 	sf::Vector2f position = sf::Vector2f(0.33f * WINDOW_WIDTH_PX, 0.8f * WINDOW_HEIGHT_PX);
 	Player* newPlayer = new Player(dimensions, position, *renderManager);
 	m_Players.push_back(newPlayer);
+	(*GameManager::m_Players).push_back(newPlayer);
 
 	return true;
 }
@@ -251,7 +282,7 @@ bool CreateNewPlayer() {
 bool MoveBallThroughInput(Ball& ball) {
 
 	bool inputGiven = false;
-	ball = *m_Balls_In_Game[0];
+	ball = *ballManager->m_Balls_In_Use[0];
 	sf::Vector2f oldDirection = ball.ballDirection;
 	if (moveUp)		{ball.ballDirection = sf::Vector2f(0.0f, -1.0f);		moveUp    = false; inputGiven = true; }
 	if (moveDown)	{ball.ballDirection = sf::Vector2f(0.0f, 1.0f);		moveDown  = false; inputGiven = true;}
@@ -333,85 +364,12 @@ bool DoGameLoopCalculations(Ball& ball, std::vector<Tile*> gametiles) {
 		UpdatePlayerPosition();
 		
 	}
+	CheckForEffectUsage();
 
-	//Update Ball 
-
-	for (int i = 0; i < m_Balls_In_Game.size(); i++) {
-		//0) check if ball is colliding with walls
-		float wallDistanceXMin = m_Balls_In_Game[i]->ballPosition.x;
-		float wallDistanceXMax = std::abs(WINDOW_WIDTH_PX - m_Balls_In_Game[i]->ballPosition.x);
-
-		if (wallDistanceXMin < m_Balls_In_Game[i]->repellantDistance || wallDistanceXMax < m_Balls_In_Game[i]->repellantDistance) {
-			std::cout << "Wall Collide!" << std::endl;
-			m_Balls_In_Game[i]->ballDirection = sf::Vector2f(m_Balls_In_Game[i]->ballDirection.x * -1.0f, m_Balls_In_Game[i]->ballDirection.y);
-		}
-
-		float wallDistanceYMin = m_Balls_In_Game[i]->ballPosition.y;
-		float wallDistanceYMax = std::abs(WINDOW_HEIGHT_PX - m_Balls_In_Game[i]->ballPosition.y);
-
-		if (wallDistanceYMin < m_Balls_In_Game[i]->repellantDistance || wallDistanceYMax < m_Balls_In_Game[i]->repellantDistance) {
-			std::cout << "Wall Collide!" << std::endl;
-			m_Balls_In_Game[i]->ballDirection = sf::Vector2f(m_Balls_In_Game[i]->ballDirection.x, m_Balls_In_Game[i]->ballDirection.y * -1.0f);
-
-		}
-
-		sf::Vector2f originalBallDirection = m_Balls_In_Game[i]->ballDirection;
-		sf::Vector2f playerCollisionBounceDirection;
-		sf::Vector2f tileCollisionBounceDirection;
-		sf::Vector2f* ptrToNewDirectionVector = nullptr;
-
-		/*bool futurePathIsClear = false;*/
-
-		/*while (!futurePathIsClear) {*/
-
-			//give direction vector to work with
-			//calculate if player would collide with the given direction vector
-			//if yes, calculate new direction vector
-			//feed new direction vector back into the loop
-			//if the ball wouldn't collide, set new direction to the given vector
-
-			//possible problems:
-			//1) could lead to false collision calculation results if the future ball position check lies too far in the collision area
-
-		bool collisionWithPlayer = CheckForCollisionWithPlayer(*m_Balls_In_Game[i], &playerCollisionBounceDirection, ptrToNewDirectionVector);
-		bool collisionWithTile = CheckForBallTileCollisionAndMovementChanges(*m_Balls_In_Game[i], gametiles, &tileCollisionBounceDirection);
-		bool effectIsUsed = CheckForEffectUsage();
-
-		//ALL OF THIS NEEDS TO BE DONE OUTSIDE OF "COLLISION WITH PLAYER"
-		if (collisionWithPlayer) {
-			//check if the ball is already inside the player 
-			Ball currentBall = *m_Balls_In_Game[i];
-
-			for (int j = 0; j < m_Players.size(); j++) {
-				if (currentBall.ballPosition.x < (m_Players[j]->m_Position.x + m_Players[j]->m_Dimensions.x / 2.0f) && currentBall.ballPosition.x >(m_Players[j]->m_Position.x - m_Players[j]->m_Dimensions.x / 2.0f)) {
-					if (currentBall.ballPosition.y < (m_Players[j]->m_Position.y + m_Players[j]->m_Dimensions.y / 2.0f) && currentBall.ballPosition.y >(m_Players[j]->m_Position.y - m_Players[j]->m_Dimensions.y / 2.0f)) {
-						//teleport it to the side the ball came from and reflect horizontally 
-						bool comingInLeft = currentBall.ballDirection.x > 0.0f;
-						float distanceBallToPlayerMiddle = abs(currentBall.ballPosition.x - m_Players[j]->m_Position.x);
-						float setOffDistance = m_Players[j]->m_Dimensions.x - distanceBallToPlayerMiddle;
-						if (comingInLeft) {
-							currentBall.ballPosition = sf::Vector2f(m_Players[j]->m_Position.x - (m_Players[j]->m_Dimensions.x + 10.0f), currentBall.ballPosition.y);
-
-						}
-						currentBall.ballDirection = currentBall.ballDirection * -1.0f;
-
-					}
-				}
-				m_Balls_In_Game[i]->ballDirection = playerCollisionBounceDirection;
-			}
-			
-		}
-
-		if (collisionWithTile) {
-			m_Balls_In_Game[i]->ballDirection = tileCollisionBounceDirection;
-		}
-		/*}*/
-
-
-		sf::Vector2f newBallPosition = m_Balls_In_Game[i]->ballPosition + m_Balls_In_Game[i]->ballDirection;
-		m_Balls_In_Game[i]->ballPosition = newBallPosition;
+	for (ManagerInterface* interface : m_Managers) {
+		interface->Tick();
 	}
-	
+
 
 	return true;
 }
@@ -427,15 +385,13 @@ bool RenderGameData(sf::RenderWindow& window, std::vector<Tile*> gametiles) {
 	for (int j = 0; j < TILE_ARRAY_LENGTH; j++) {
 		gametiles[j]->UpdateTileColorBasedOnHits(*renderManager);
 	}
-	//draw tile effects which are falling down
-	/*DrawTileEffects(window);*/
 
 	
 
-	for (int i = 0; i < m_Balls_In_Game.size(); i++) {
+	for (int i = 0; i < ballManager->m_Balls_In_Use.size(); i++) {
 		
-		std::shared_ptr<sf::CircleShape> currentBallVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(m_Balls_In_Game[i]->ballVisualID));
-		currentBallVisual->setPosition(m_Balls_In_Game[i]->ballPosition);
+		std::shared_ptr<sf::CircleShape> currentBallVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(ballManager->m_Balls_In_Use[i]->ballVisualID));
+		currentBallVisual->setPosition(ballManager->m_Balls_In_Use[i]->ballPosition);
 
 	}
 
@@ -447,8 +403,6 @@ bool RenderGameData(sf::RenderWindow& window, std::vector<Tile*> gametiles) {
 		
 	}
 
-	droppingEffectManager->DrawTileEffects(*renderManager);
-	
 	//draw ball
 	renderManager->Render();
 	window.display();
@@ -456,66 +410,6 @@ bool RenderGameData(sf::RenderWindow& window, std::vector<Tile*> gametiles) {
 	return true;
 }
 
-//bool InitializeTileArrayWithData(Tile* tiles[], int tileArrayLength) {
-//
-//
-//	
-//	//get tile type by chance
-//	std::random_device rd; // obtain a random number from hardware
-//	std::mt19937 gen(rd()); // seed the generator
-//	std::uniform_int_distribution<> distr(0, 100); // define the range
-//	
-//	
-//	
-//	for (int i = 0; i < tileArrayLength; i++) {
-//		
-//		//two dimensional "array position" 
-//		sf::Vector2f index2DPosition = Get2DPositionWithIndex(i);
-//		sf::Vector2<float> position = sf::Vector2<float>((index2DPosition.x * (WINDOW_WIDTH_PX / WINDOW_SEGMENTS_WIDTH)) + Tile::OUTLINE_THICKNESS + (m_TileDimensions.x / 2.0f),
-//														(index2DPosition.y * (WINDOW_HEIGHT_PX / WINDOW_SEGMENTS_HEIGHT)) / 3.0f + (m_TileDimensions.y / 2.0f));
-//
-//		//what sort of tile is this?
-//		TileType newType = TileType::TileTCount;
-//		float randomNumber = distr(gen) / 100.0f;
-//		if (randomNumber < 0.2f) {
-//			newType = TileType::AddedBall;
-//		}
-//		else if (randomNumber >= 0.7f) {
-//			newType = TileType::QuickerPlayer;
-//		}
-//		else {
-//			newType = TileType::NoEvent;
-//		}
-//
-//		//tile visual shape creation
-//		sf::Vector2<float>size = m_TileDimensions - sf::Vector2f(2.0f * Tile::OUTLINE_THICKNESS, 2.0f * Tile::OUTLINE_THICKNESS);
-//
-//		sf::RectangleShape* rect = new sf::RectangleShape(size);
-//		std::shared_ptr<sf::RectangleShape>rect_shared = std::make_shared<sf::RectangleShape>(*rect);
-//		rect->setSize(size);
-//
-//		rect_shared->setOrigin(m_TileDimensions.x / 2.0f, m_TileDimensions.y / 2.0f);
-//		rect_shared->setFillColor(m_TileTypeToColor[newType]);
-//		rect_shared->setOutlineColor(sf::Color::White);
-//		rect_shared->setOutlineThickness(Tile::OUTLINE_THICKNESS);
-//		rect_shared->setPosition(position);
-//		/*	tileShapes[i] = rect;*/
-//		int visID = renderManager->AddShape(rect_shared);
-//		Tile* newTile = new Tile(position, newType, m_TileTypeToColor[newType], visID);
-//		tiles[i] = newTile;
-//		
-//		
-//	}
-//	return true;
-//}
-
-//sf::Vector2f Get2DPositionWithIndex(int index, int width) {
-//	sf::Vector2f position;
-//
-//	position.x = index % (width);
-//	position.y = std::floor((float)index/ width));
-//	return position;
-//}
 
 bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& window) {
 
@@ -610,122 +504,6 @@ bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& w
 
 
 
-
-//F ball.h
-bool CheckForCollisionWithPlayer(Ball& ball,  sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition)
-{
-	
-	//TODO 
-	//1) add a safeguard that the actual setting of the new direction will only commence once this collision check comes back as negative for the possible next location
-	bool playerCollideVertical = false;
-	bool playerCollideHorizontal = false;
-
-	sf::Vector2f futureBallPosition;
-	futureBallPosition = (ball.ballPosition + sf::Vector2f(ball.ballRadius, ball.ballRadius)) + ball.ballDirection;
-	if (nextBallPosition != nullptr) {
- 		futureBallPosition = *nextBallPosition;
-	}
-
-	float testingX = futureBallPosition.x;
-	float testingY = futureBallPosition.y;
-
-	for (int i = 0; i < m_Players.size(); i++) {
-		float minPlayerX = m_Players[i]->m_Position.x - (m_Players[i]->m_Dimensions.x / 2.0f);
-		float maxPlayerX = m_Players[i]->m_Position.x + (m_Players[i]->m_Dimensions.x / 2.0f);
-		float minPlayerY = m_Players[i]->m_Position.y - (m_Players[i]->m_Dimensions.y / 2.0f);
-		float maxPlayerY = m_Players[i]->m_Position.y + (m_Players[i]->m_Dimensions.y / 2.0f);
-
-		//      |
-		//		*-------*
-		//		|       |  rightX
-		//		*-------*
-		//      |
-		//
-		//bools to check for sector position of the ball
-		bool leftX = false;
-		bool rightX = false;
-		bool upY = false;
-		bool downY = false;
-
-		if (futureBallPosition.x < minPlayerX) { testingX = minPlayerX; leftX = true; }
-		else if (futureBallPosition.x > maxPlayerX) { testingX = maxPlayerX; rightX = true; }
-
-		if (futureBallPosition.y < minPlayerY) { testingY = minPlayerY; upY = true; }
-		else if (futureBallPosition.y > maxPlayerY) { testingY = maxPlayerY; downY = true; }
-
-		float distanceX = futureBallPosition.x - testingX;
-		float distanceY = futureBallPosition.y - testingY;
-		float overallDistance = sqrt((distanceX * distanceX) + (distanceY * distanceY));
-
-		//insert corner check here (check for (if ball.pos == one of the corner pos) -> give direction that yeets it in a line from the tile pos- tile corner)
-		//code here
-
-		bool cornerWasHit = false;
-		bool leftUpperCorner = false;
-		bool rightUpperCorner = false;
-		bool leftLowerCorner = false;
-		bool rightLowerCorner = false;
-
-		if (overallDistance <= ball.ballRadius) {
-
-			//test for which section the ball is in 
-
-
-			if (upY && leftX) {
-				leftUpperCorner = true;
-				cornerWasHit = true;
-			}
-			else if (downY && leftX) {
-				leftLowerCorner = true;
-				cornerWasHit = true;
-			}
-			else if (upY && rightX) {
-				rightUpperCorner = true;
-				cornerWasHit = true;
-			}
-			else if (downY && rightX) {
-				rightLowerCorner = true;
-				cornerWasHit = true;
-			}
-
-			if (!cornerWasHit && (leftX || rightX)) {
-
-
-				playerCollideHorizontal = true;
-			}
-
-			if (!cornerWasHit && (upY || downY)) {
-				playerCollideVertical = true;
-			}
-
-
-		}
-
-
-
-		if (cornerWasHit) {
-			*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y * -1.0f);
-			return true;
-		}
-		if (playerCollideVertical) {
-			*bounceDirection = CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision, ball, *m_Players[i]);
-			return true;
-		}
-
-		if (playerCollideHorizontal) {
-			*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
-			return true;
-		}
-
-
-
-	}
-	
-
-	
-	return false;
-}
-
 void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector) {
 
 	sf::Vector2f leftPos = sf::Vector2f(m_Players[0]->m_Position.x - (m_Players[0]->m_Dimensions.x * Player::RIM_PERCENTAGE), m_Players[0]->m_Position.y);
@@ -759,154 +537,6 @@ void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f right
 	m_PlayerNormalLineCoords[7].color = sf::Color::Red;
 }
 
-sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Ball& ball, Player& player) {
-
-	sf::Vector2f newBallDirectionVector; 
-	float deviationAngle = 5.0f;
-	float leftAngleInRadianX = cos(((double)270.0f + (double)deviationAngle)  * (M_PI / 180.0f));
-	float leftAngleInRadianY = sin(((double)270.0f + (double)deviationAngle)  * (M_PI / 180.0f));
-	float rightAngleInRadianX = cos(((double)270.0f - (double)deviationAngle) * (M_PI / 180.0f));
-	float rightAngleInRadianY = sin(((double)270.0f - (double)deviationAngle) * (M_PI / 180.0f));
-
-	
-	sf::Vector2f leftRimNormal = sf::Vector2f(leftAngleInRadianX , leftAngleInRadianY);
-	sf::Vector2f rightRimNormal =  sf::Vector2f(rightAngleInRadianX , rightAngleInRadianY);
-
-	
-	//player collision ball bounce vector calculation based on where on the player it lands
-	//1) where on the player did we land? (percentage areas)
-	if (type == CollisionType::VerticalCollision) {
-		float proportionalXPos = futureBallPosition.x - (player.m_Position.x - (player.m_Dimensions.x /2.0f));
-		float percentageOnXAxis =proportionalXPos/player.m_Dimensions.x;
-		if (percentageOnXAxis < Player::RIM_PERCENTAGE) {
-			//cos-1 [ (a · b) / (|a| |b|) ]
-			
-			float ballDirTimesNormal = (ball.ballDirection.x * leftRimNormal.x) + (ball.ballDirection.y * leftRimNormal.y);
-			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
-			float absoluteNormal = sqrt((leftRimNormal.x * leftRimNormal.x) + (leftRimNormal.y * leftRimNormal.y));
-			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal/(absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
-			float newVectorAngle = angleBetweenBallDirectionAndNormal * -2.0f;
-			
-			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
-			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
-		}
-		if (percentageOnXAxis > 1.0f - Player::RIM_PERCENTAGE) {
-
-			float ballDirTimesNormal = (ball.ballDirection.x * rightRimNormal.x) + (ball.ballDirection.y * rightRimNormal.y);
-			float absoluteBallDir = sqrt((ball.ballDirection.x * ball.ballDirection.x) + (ball.ballDirection.y * ball.ballDirection.y));
-			float absoluteNormal = sqrt((rightRimNormal.x * rightRimNormal.x) + (rightRimNormal.y * rightRimNormal.y));
-			float angleBetweenBallDirectionAndNormal = acos(ballDirTimesNormal / (absoluteBallDir * absoluteNormal)) / (M_PI / 180.0f);
-			float newVectorAngle = angleBetweenBallDirectionAndNormal * -2.0f;
-
-			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x * cos((newVectorAngle) * (M_PI / 180.0f)) - ball.ballDirection.y * sin(newVectorAngle * (M_PI / 180.0f)), ball.ballDirection.x * sin(newVectorAngle * (M_PI / 180.0f)) + ball.ballDirection.y * cos(newVectorAngle * (M_PI / 180.0f)));
-			std::cout<< "old: " << angleBetweenBallDirectionAndNormal <<", new: " << newVectorAngle << std::endl;
-		}
-		else {
-			newBallDirectionVector = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
-		}
-		UpdateCollisionDebugDrawings(leftRimNormal, rightRimNormal, ball.ballDirection, newBallDirectionVector);
-	}
-
-	//2) calculate the normal for the player area (make it customizable based on initial deviation degree for normal)
-	//3) calculate the angle between the normal and the ball direction vector
-	//4) give new direction vector based on the angle 
-
-	return newBallDirectionVector;
-}
-
-
-
-bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, std::vector<Tile*> gametiles, sf::Vector2f* bounceDirection) {
-
-
-	bool playerCollideVertical = false;
-	bool playerCollideHorizontal = false;
-
-
-	sf::Vector2f futureBallPosition = (ball.ballPosition + sf::Vector2f(ball.ballRadius, ball.ballRadius)) + ball.ballDirection;
-
-	
-
-	for (int i = 0; i < TILE_ARRAY_LENGTH; i++) {
-		bool alive = gametiles[i]->isAlive;
-		if (!alive) {
-			continue;
-		}
-		sf::Vector2f currentTilePosition = gametiles[i]->position;
-		float testingX = futureBallPosition.x;
-		float testingY = futureBallPosition.y;
-		
-		float minTileX = currentTilePosition.x - (m_TileDimensions.x /2.0f);
-		float maxTileX = currentTilePosition.x + (m_TileDimensions.x /2.0f);
-		float minTileY = currentTilePosition.y - (m_TileDimensions.y / 2.0f);
-		float maxTileY = currentTilePosition.y + (m_TileDimensions.y / 2.0f);
-
-		//bools to check for section position of the ball
-		bool leftX	= false;
-		bool rightX = false;
-		bool upY	= false;
-		bool downY	= false;
-
-		if(futureBallPosition.x < minTileX){ testingX			= minTileX; leftX		= true;}
-		else if(futureBallPosition.x > maxTileX){ testingX	= maxTileX; rightX	= true;}
-
-		if (futureBallPosition.y < minTileY) {testingY		= minTileY; upY		= true;}
-		else if (futureBallPosition.y > maxTileY) { testingY	= maxTileY; downY		= true;}
-
-		float distanceX = futureBallPosition.x - testingX;
-		float distanceY = futureBallPosition.y - testingY;
-		float overallDistance = sqrt((distanceX * distanceX)+ (distanceY* distanceY));
-
-		//insert corner check here (check for (if ball.pos == one of the corner pos) -> give direction that yeets it in a line from the tile pos- tile corner)
-		//code here
-
-
-		if (overallDistance <= ball.ballRadius) {
-
-			//test for which section the ball is in 
-
-			if (leftX || rightX) {
-				playerCollideHorizontal = true;
-			}
-
-			if (upY || downY) {
-				playerCollideVertical = true;
-			}
-			
-
-		}
-
-
-
-		if (playerCollideVertical) {
-			
-			*bounceDirection = sf::Vector2f(ball.ballDirection.x, ball.ballDirection.y* -1.0f);
-			gametiles[i]->hitCount -= 1;
-			int currentHitCount = gametiles[i]->hitCount;
-			if (currentHitCount <= 0) {
-				gametiles[i]->isAlive = false;
-				/*DropTileEffect(*gametiles[i]);*/
-				droppingEffectManager->m_CurrentlyShownEffects[i].m_IsActive = true;
-			}
-			return true;
-		}
-
-		if (playerCollideHorizontal) {
-			*bounceDirection = sf::Vector2f(ball.ballDirection.x * -1.0f, ball.ballDirection.y);
-			gametiles[i]->hitCount -= 1;
-			int currentHitCount = gametiles[i]->hitCount;
-			if (currentHitCount <= 0) {
-				gametiles[i]->isAlive = false;
-				/*DropTileEffect(*gametiles[i]);*/
-				droppingEffectManager->m_CurrentlyShownEffects[i].m_IsActive = true;
-			}
-			return true;
-		}
-	}
-
-	return false;
-	
-}
 
 TileType CheckEffectWithPlayerCollision(bool* collisionBool, Player& player) {
 
@@ -947,7 +577,7 @@ bool CheckForEffectUsage() {
 			switch (effectType) {
 			case TileType::AddedBall:
 				std::cout << "Added Ball!" << std::endl;
-				CreateNewBall();
+				ballManager->CreateNewBall();
 				break;
 			case TileType::QuickerPlayer:
 				std::cout << "Quicker Player!" << std::endl;
