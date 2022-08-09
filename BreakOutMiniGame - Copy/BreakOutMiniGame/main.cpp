@@ -188,9 +188,9 @@ int main()
 	
 
 	std::map<ManagerType, ManagerInterface*> managersMap;
+	managersMap[ManagerType::droppingEffectManager_T] = droppingEffectManager;
 	managersMap[ManagerType::ballManager_T] = ballManager;
 	managersMap[ManagerType::tileManager_T] = tileManager;
-	managersMap[ManagerType::droppingEffectManager_T] = droppingEffectManager;
 	managersMap[ManagerType::renderManager_T] = renderManager;
 	
 	info.managerMap = managersMap;
@@ -198,23 +198,27 @@ int main()
 	gameManager = new GameManager(info);
 
 	
+	std::map<ManagerType, ManagerInterface*>::iterator it;
 
-	//gather all managers
-	//this should be obsolete because of the game manager singleton
-	m_Managers.push_back(renderManager);
-	m_Managers.push_back(tileManager);
-	m_Managers.push_back(droppingEffectManager);
-	m_Managers.push_back(ballManager);
-
-	for (auto& manager : m_Managers) {
-		manager->TickBeforeStart();
+	for (it = managersMap.begin(); it != managersMap.end(); it++)
+	{
+		it->second->TickBeforeStart();
+			
 	}
+	////gather all managers
+	////this should be obsolete because of the game manager singleton
+	//m_Managers.push_back(renderManager);
+	//m_Managers.push_back(tileManager);
+	//m_Managers.push_back(droppingEffectManager);
+	//m_Managers.push_back(ballManager);
+
+	//for (auto& manager : m_Managers) {
+	//	manager->TickBeforeStart();
+	//}
 
 	//Create player tile
 	CreateNewPlayer();
 
-	//create ball
-	/*CreateNewBall();*/
 	
 	//setup input arrays
 	SetUpInputCountingSystem();
@@ -366,8 +370,12 @@ bool DoGameLoopCalculations(Ball& ball, std::vector<Tile*> gametiles) {
 	}
 	CheckForEffectUsage();
 
-	for (ManagerInterface* interface : m_Managers) {
-		interface->Tick();
+	std::map<ManagerType, ManagerInterface*>::iterator it;
+
+	for (it = GameManager::m_ManagerMap.begin(); it != GameManager::m_ManagerMap.end(); it++)
+	{
+		it->second->Tick();
+
 	}
 
 

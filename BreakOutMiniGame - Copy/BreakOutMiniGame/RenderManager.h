@@ -16,7 +16,8 @@ class RenderManager : public ManagerInterface{
 	std::map<int, std::shared_ptr<sf::Shape>> m_ShapesToRender;
 	sf::RenderWindow* m_CurrentWindow; 
 	int m_IdCounter = 0;
-	
+	bool m_InitializationIsDone = false;
+
 	public: 
 		sf::Vector2f m_WindowDimensions_px;
 		sf::Vector2f m_WindowSegmentDimensions_px; 
@@ -28,11 +29,12 @@ class RenderManager : public ManagerInterface{
 			m_WindowDimensions_px = windowDimensions_px;
 			m_WindowSegmentDimensions_px = windowSegmentDimensions_px;
 			m_ScalingFactor = scalingFactor;
-			
+			m_InitializationIsDone = true;
 		}
 
 		virtual ManagerType GetManagerType(){return ManagerType::renderManager_T;}
 		virtual void TickBeforeStart(){}
+		virtual bool HasFinishedInitialization() { return m_InitializationIsDone; }
 		virtual void Tick() {
 			//std::cout<< "RenderManager Tick!" << std::endl;
 		}

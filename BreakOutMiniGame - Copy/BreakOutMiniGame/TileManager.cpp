@@ -1,4 +1,5 @@
 #include "TileManager.h"
+#include <cassert>
 
 sf::Vector2f TileManager::TILE_DIMENSIONS = sf::Vector2f(0.0f, 0.0f);
 int TileManager::TILE_ARRAY_LENGTH = 0;
@@ -18,6 +19,8 @@ bool TileManager::InitializeTileVector() {
 	for (int i = 0; i < TILE_ARRAY_LENGTH; i++) {
 
 		RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
+		assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
 		//two dimensional "array position" 
 		sf::Vector2f index2DPosition = MathHelper::Get2DPositionWithIndex(i, (int)renderManager.m_WindowSegmentDimensions_px.x);
 		sf::Vector2<float> position = sf::Vector2<float>((index2DPosition.x * (renderManager.m_WindowDimensions_px.x / renderManager.m_WindowSegmentDimensions_px.x)) + Tile::OUTLINE_THICKNESS + (TILE_DIMENSIONS.x / 2.0f),

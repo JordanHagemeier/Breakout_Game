@@ -9,7 +9,7 @@
 
 class DroppingEffectManager : public ManagerInterface {
 	int m_TileArrayLength;
-
+	bool m_InitializationIsDone = false;
 public:
 	
 	std::vector<DroppingEffect> m_CurrentlyShownEffects;
@@ -23,8 +23,12 @@ public:
 
 	virtual ManagerType GetManagerType() { return ManagerType::droppingEffectManager_T; }
 	virtual void TickBeforeStart() {
+
 		SetupDroppingEffects();
+		m_InitializationIsDone = true;
 	}
+
+	virtual bool HasFinishedInitialization() { return m_InitializationIsDone; }
 	virtual void Tick()
 	{
 		UpdateTileEffectVisuals();

@@ -1,12 +1,21 @@
 #include "DroppingEffectManager.h"
 #include "GameManager.h"
 #include "TileManager.h"
+#include <cassert>
 
 void DroppingEffectManager::SetupDroppingEffects() {
+	RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+	TileManager& tileManager = static_cast<TileManager&>(*GameManager::m_ManagerMap[ManagerType::tileManager_T]);
+	assert(tileManager.HasFinishedInitialization(), "Tile Manager not yet fully initialized! See initialization process & order.");
 	for (int i = 0; i < m_TileArrayLength; i++) {
 
-		RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
-		TileManager& tileManager = static_cast<TileManager&>(*GameManager::m_ManagerMap[ManagerType::tileManager_T]);
+		/*if (!tileManager.HasFinishedInitialization()) {
+			std::cout << "Tile Manager not yet fully initialized! See initialization process & order." <<std::endl;
+			
+		}*/
+
 		//setup effects for each tile
 		DroppingEffect* newEffect = new DroppingEffect();
 

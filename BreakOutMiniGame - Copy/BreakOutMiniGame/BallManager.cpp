@@ -1,15 +1,18 @@
 #include "BallManager.h"
+#include <cassert>
 
  sf::Vector2f BallManager::m_BallStarterPosition_UNALTERED = sf::Vector2f(0.0f, 0.0f);
  sf::Vector2f BallManager::m_BallStarterPosition_ALTERED = sf::Vector2f(0.0f, 0.0f);
 
 void BallManager::CreateNewBall() {
+	RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
 	sf::CircleShape* ballNotSharedPtr = new sf::CircleShape(0.0f);
 	std::shared_ptr<sf::CircleShape> ball_Visual = std::make_shared<sf::CircleShape>(*ballNotSharedPtr);
-	RenderManager* renderManager = static_cast<RenderManager*>(GameManager::m_ManagerMap[ManagerType::renderManager_T]);
 
-	int ballVisID = renderManager->AddShape(ball_Visual);
-	Ball* ball = new Ball(2.0f * renderManager->m_ScalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, renderManager->m_ScalingFactor, *ball_Visual, ballVisID);
+	int ballVisID = renderManager.AddShape(ball_Visual);
+	Ball* ball = new Ball(2.0f * renderManager.m_ScalingFactor, m_BallStarterPosition_UNALTERED, 315.0f, renderManager.m_ScalingFactor, *ball_Visual, ballVisID);
 
 	ball->ballPosition = m_BallStarterPosition_UNALTERED;
 	ball->ballDirection = sf::Vector2f(std::cos(ball->ballAngle) * Ball::BALL_BASE_SPEED, std::sin(ball->ballAngle) * Ball::BALL_BASE_SPEED);

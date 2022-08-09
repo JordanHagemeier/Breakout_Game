@@ -21,6 +21,7 @@ struct GameManagerInfo {
 };
 class GameManager {
 
+
 	public:
 		static std::vector<Ball*>* m_Balls_In_Use;
 		static std::vector<Tile*>* m_Tiles;
