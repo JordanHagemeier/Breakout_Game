@@ -3,10 +3,11 @@
 
 enum ManagerType {
 	renderManager_T,
-	gameManager_T,
 	ballManager_T,
 	tileManager_T,
-	droppingEffectManager_T
+	droppingEffectManager_T,
+	playerManager_T,
+	gameManager_T
 };
 
 class ManagerInterface {

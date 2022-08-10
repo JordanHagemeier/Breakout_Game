@@ -9,7 +9,10 @@ class Player {
 	int m_VisualID [3]; 
 	sf::Vector2f		m_Dimensions;
 	sf::Vector2f		m_Position;
+
 	sf::Vector2f		m_MovementToApply = sf::Vector2f(0.0f, 0.0f); 
+	bool				m_PlayerWasGivenInput = false;
+
 	static const float		RIM_PERCENTAGE;
 
 	//movement
@@ -24,13 +27,14 @@ class Player {
 	float	m_IncreasedSpeedMultiplier = 3; //F static constexpr --> could be part of buff class (does not really belong to player)
 	float	m_SpeedIncreasedDuration = 5000.0f; //F static constexpr --> could be part of buff class (does not really belong to player)
 
-	Player(sf::Vector2f dim, sf::Vector2f pos, RenderManager& renderManager) {
+	Player(sf::Vector2f dim, sf::Vector2f pos) {
 		m_Dimensions = dim;
 		m_Position = pos;
-		InitializeVisuals(renderManager);
+		/*InitializeVisuals(renderManager);*/
 	}
 
 	void InitializeVisuals(RenderManager& renderManager);
-	void UpdatePlayerVisuals(RenderManager& renderManager, sf::Vector2f windowDimensions);
+	void UpdatePlayerVisuals(RenderManager& renderManager);
+	bool CheckPlayerForBuffEffect(RenderManager& renderManager);
 
 };

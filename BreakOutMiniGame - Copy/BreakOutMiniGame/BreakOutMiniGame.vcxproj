@@ -26,6 +26,7 @@
     <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerManager.cpp" />
     <ClCompile Include="RenderManager.cpp" />
     <ClCompile Include="Tile.cpp" />
     <ClCompile Include="TileManager.cpp" />
@@ -41,6 +42,7 @@
     <ClInclude Include="ManagerInterface.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerManager.h" />
     <ClInclude Include="RenderManager.h" />
     <ClInclude Include="Tile.h" />
     <ClInclude Include="TileManager.h" />

@@ -4,6 +4,7 @@
 #include "Tile.h"
 #include <SFML/Graphics.hpp>
 #include "DroppingEffect.h"
+#include "Player.h"
 
 
 
@@ -32,9 +33,11 @@ public:
 	virtual void Tick()
 	{
 		UpdateTileEffectVisuals();
+		CheckForEffectUsage();
 	}
 	void SetupDroppingEffects();
 	void UpdateTileEffectVisuals();
 	void ActivateTileEffect(int arrayPosition);
-
+	TileType CheckEffectWithPlayerCollision(bool* collisionBool, Player& player);
+	bool CheckForEffectUsage();
 };

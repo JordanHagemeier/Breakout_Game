@@ -19,13 +19,13 @@ struct GameManagerInfo {
 
 
 };
-class GameManager {
+class GameManager : public ManagerInterface{
 
 
 	public:
 		static std::vector<Ball*>* m_Balls_In_Use;
 		static std::vector<Tile*>* m_Tiles;
-		static std::vector<Player*>* m_Players;
+		/*static std::vector<Player*>* m_Players;*/
 
 
 		static std::map<ManagerType, ManagerInterface*> m_ManagerMap;
@@ -34,10 +34,15 @@ class GameManager {
 		GameManager(GameManagerInfo info) {
 			m_Balls_In_Use = info.balls;
 			m_Tiles = info.tiles;
-			m_Players = info.players;
+			/*m_Players = info.players;*/
 
 			m_ManagerMap			= info.managerMap;
 			m_TileTypeToColorMap	= info.tileTypeToColorMap;
 
 		}
+
+		virtual bool HasFinishedInitialization(){ return true; };
+		virtual ManagerType GetManagerType() { return ManagerType::gameManager_T; };
+		virtual void TickBeforeStart() {};
+		virtual void Tick() {};
 };

@@ -15,6 +15,7 @@
 #include "TileManager.h"
 #include "BallManager.h"
 #include "GameManager.h"
+#include "PlayerManager.h"
 
 
 /* //F
@@ -73,6 +74,7 @@ Feedback 31.07
 const int WINDOW_SEGMENTS_WIDTH = 8;
 const int WINDOW_SEGMENTS_HEIGHT = 6;
 const int TILE_ARRAY_LENGTH = WINDOW_SEGMENTS_WIDTH*WINDOW_SEGMENTS_HEIGHT;
+sf::RenderWindow* m_Window;
 
 const int WINDOW_WIDTH_PX = 200 * scalingFactor; 
 const int WINDOW_HEIGHT_PX = 200 * scalingFactor;
@@ -93,7 +95,7 @@ bool	m_NewInputAvailable = false; //F  not player related, but application relat
 sf::Vector2f m_TileDimensions = sf::Vector2<float>((float)(WINDOW_WIDTH_PX/WINDOW_SEGMENTS_WIDTH), (float)(WINDOW_HEIGHT_PX/WINDOW_SEGMENTS_HEIGHT) / 3.0f);
 sf::Color m_NoHitColor;
 sf::Color m_FinalHitColor;
-int m_TileHitsAllowed = 3;
+
 
 const int amountOfInputs = 10;
 const int frameLimit = 600;
@@ -102,9 +104,6 @@ int inputTimer [amountOfInputs];
 int inputTimerLimit[amountOfInputs];
 
 
-sf::Vector2f m_BallStarterPosition_UNALTERED = sf::Vector2f(WINDOW_WIDTH_PX * 0.05f, WINDOW_HEIGHT_PX * 0.4f);
-sf::Vector2f m_BallStarterPosition_ALTERED = sf::Vector2f(0.0f, 0.0f);
-
 bool m_BallControlEnabled = false;
 bool moveUp = false;
 bool moveDown = false;
@@ -112,7 +111,6 @@ bool moveRight = false;
 bool moveLeft = false;
 
 std::map<TileType, sf::Color> m_TileTypeToColor;
-std::vector<Player*> m_Players;
 
 //Debugging Visuals
 
@@ -124,6 +122,7 @@ DroppingEffectManager* droppingEffectManager;
 TileManager* tileManager;
 BallManager* ballManager; 
 GameManager* gameManager;
+PlayerManager* playerManager;
 
 
 int main()
@@ -159,15 +158,68 @@ int main()
 
 
 	///-------------------------------
-	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), "SFML works!");
+	m_Window = new sf::RenderWindow (sf::VideoMode(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), "SFML works!");
 
+	CreateManagers();
+	InitializeManagers();
+
+	
+	//setup input arrays
+	SetUpInputCountingSystem();
+
+	
+	
+	while (m_Window->isOpen())
+	{
+
+		sf::Event event;
+		while (m_Window->pollEvent(event))
+		{
+			if (event.type == sf::Event::Resized)
+			{
+				// update the view to the new size of the window
+				float aspectRatio = (float)WINDOW_WIDTH_PX/WINDOW_HEIGHT_PX;
+				sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+				m_Window->setSize(sf::Vector2u(event.size.height * aspectRatio, event.size.height));
+				
+			}
+
+			if (event.type == sf::Event::Closed)
+				m_Window->close();
+		}
+
+		//Check for Input
+		CheckForInput(*ballManager->m_Balls_In_Use[0]);
+		
+
+		if (m_CalculateOneFrame) {
+			DoGameLoopCalculations();
+			m_CalculateOneFrame = false;
+		}
+
+		if (m_GamePaused) {
+			MoveBallThroughInput(*ballManager->m_Balls_In_Use[0]);
+			RenderGameData();
+			
+			continue;
+		}
+
+		
+		DoGameLoopCalculations();
+		RenderGameData();
+	}
+
+	return 0;
+}
+
+void CreateManagers() {
 	//Manager Creation
-	//1) Render Manager, which is essential for all others
-	renderManager = new RenderManager(window, sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT), scalingFactor);
+		//1) Render Manager, which is essential for all others
+	renderManager = new RenderManager(*m_Window, sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT), scalingFactor);
 
 	//2)Tile Manager
 	tileManager = new TileManager();
-	
+
 
 	//3) Effect Manager for Tile Dropping Effects
 	droppingEffectManager = new DroppingEffectManager(TILE_ARRAY_LENGTH);
@@ -176,101 +228,42 @@ int main()
 	ballManager = new BallManager();
 
 	//(optional: 5) Player Manager?)
+	playerManager = new PlayerManager();
 
 	//6) Game Manager which combines all of the above
 	GameManagerInfo info;
-	
+
 	info.balls = &ballManager->m_Balls_In_Use;
 	info.tiles = &tileManager->m_Tiles;
-	info.players = &m_Players;
+	/*info.players = &m_Players;*/
 	info.tileTypeToColorMap = m_TileTypeToColor;
-	
+
 
 	std::map<ManagerType, ManagerInterface*> managersMap;
 	managersMap[ManagerType::droppingEffectManager_T] = droppingEffectManager;
 	managersMap[ManagerType::ballManager_T] = ballManager;
 	managersMap[ManagerType::tileManager_T] = tileManager;
 	managersMap[ManagerType::renderManager_T] = renderManager;
-	
+	managersMap[ManagerType::playerManager_T] = playerManager;
+
 	info.managerMap = managersMap;
 
 	gameManager = new GameManager(info);
 
-	
+
+}
+
+void InitializeManagers() {
 	std::map<ManagerType, ManagerInterface*>::iterator it;
 
-	for (it = managersMap.begin(); it != managersMap.end(); it++)
+	for (it = GameManager::m_ManagerMap.begin(); it != GameManager::m_ManagerMap.end(); it++)
 	{
 		it->second->TickBeforeStart();
-			
+
 	}
 
-
-	//Create player tile
-	CreateNewPlayer();
-
-	
-	//setup input arrays
-	SetUpInputCountingSystem();
-
-	
-	
-	while (window.isOpen())
-	{
-
-		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			if (event.type == sf::Event::Resized)
-			{
-				// update the view to the new size of the window
-				float aspectRatio = (float)WINDOW_WIDTH_PX/WINDOW_HEIGHT_PX;
-				sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
-				window.setSize(sf::Vector2u(event.size.height * aspectRatio, event.size.height));
-				
-			}
-
-			if (event.type == sf::Event::Closed)
-				window.close();
-		}
-
-		//Check for Input
-		if (!m_NewInputAvailable)
-		{
-			m_NewInputAvailable = CheckForInput(*ballManager->m_Balls_In_Use[0], tileManager->m_Tiles, window);
-		}
-
-		if (m_CalculateOneFrame) {
-			DoGameLoopCalculations();
-			//std::cout << "Calculate one frame" << std::endl;
-			m_CalculateOneFrame = false;
-		}
-
-		if (m_GamePaused) {
-			MoveBallThroughInput(*ballManager->m_Balls_In_Use[0]);
-			RenderGameData(window);
-			
-			continue;
-		}
-
-		
-		DoGameLoopCalculations();
-		RenderGameData(window);
-	}
-
-	return 0;
 }
 
-
-bool CreateNewPlayer() {
-	sf::Vector2f dimensions = sf::Vector2f(55.0f, 10.0f) * scalingFactor;
-	sf::Vector2f position = sf::Vector2f(0.33f * WINDOW_WIDTH_PX, 0.8f * WINDOW_HEIGHT_PX);
-	Player* newPlayer = new Player(dimensions, position, *renderManager);
-	m_Players.push_back(newPlayer);
-	(*GameManager::m_Players).push_back(newPlayer);
-
-	return true;
-}
 
 //F in ball.h --> UpdateMovement & UpdateMovement_DebugInput, ein if/else entscheidet welche von den beiden genutzt wird
 bool MoveBallThroughInput(Ball& ball) {
@@ -306,59 +299,10 @@ bool SetUpInputCountingSystem() {
 	return true;
 }
 
-//Player.h
-bool UpdatePlayerPosition() {
 
-	//THIS IS ONLY MEANT FOR ONE PLAYER RIGHT NOW
-	for (int i = 0; i < m_Players.size(); i++) {
-		
-		m_Players[i]->UpdatePlayerVisuals(*renderManager, sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX));
-		m_NewInputAvailable = false;
-	}
-	
-	return true;
-}
 
-bool CheckPlayersForBuffEffect() {
-	for (int j = 0; j < m_Players.size(); j++) {
-		if (m_Players[j]->m_SpeedIsIncreased) {
-			m_Players[j]->m_RemainingSpeedBuffTime--;
-
-			if (m_Players[j]->m_RemainingSpeedBuffTime < 0.0f) {
-				m_Players[j]->m_SpeedIsIncreased = false;
-				std::shared_ptr<sf::RectangleShape> playerVisual_Middle = std::static_pointer_cast<sf::RectangleShape>(renderManager->GetShape(m_Players[j]->m_VisualID[0]));
-				playerVisual_Middle->setFillColor(Player::BASE_COLOR);
-				continue;
-			}
-
-			m_Players[j]->m_MovementToApply.x = m_Players[j]->m_MovementToApply.x * m_Players[j]->m_IncreasedSpeedMultiplier;
-			float effectDurationPercentage = (float)m_Players[j]->m_RemainingSpeedBuffTime / (float)m_Players[j]->m_SpeedIncreasedDuration;
-
-			sf::Color effectBasedColor;
-			effectBasedColor.r = MathHelper::Lerp(Player::BUFF_COLOR.r, Player::BASE_COLOR.r, effectDurationPercentage);
-			effectBasedColor.g = MathHelper::Lerp(Player::BUFF_COLOR.g, Player::BASE_COLOR.g, effectDurationPercentage);
-			effectBasedColor.b = MathHelper::Lerp(Player::BUFF_COLOR.b, Player::BASE_COLOR.b, effectDurationPercentage);
-
-			std::shared_ptr<sf::RectangleShape> playerVisual_Middle = std::static_pointer_cast<sf::RectangleShape>(renderManager->GetShape(m_Players[j]->m_VisualID[0]));
-			playerVisual_Middle->setFillColor(effectBasedColor);
-
-		}
-
-	}
-	return true;
-}
 
 bool DoGameLoopCalculations() {
-
-	CheckPlayersForBuffEffect();
-	//Update Player Position
-	
-	if (m_NewInputAvailable) {
-	
-		UpdatePlayerPosition();
-		
-	}
-	CheckForEffectUsage();
 
 	std::map<ManagerType, ManagerInterface*>::iterator it;
 
@@ -372,27 +316,27 @@ bool DoGameLoopCalculations() {
 	return true;
 }
 
-bool RenderGameData(sf::RenderWindow& window) {
+bool RenderGameData() {
 
 
-	window.clear();
+	m_Window->clear();
 
 	//draw debugging lines
 	for (int k = 0; k < 8; k += 2) {
 		sf::Vertex currentCoordsPair[2] = {m_PlayerNormalLineCoords[k], m_PlayerNormalLineCoords[k+1]};
-		window.draw(currentCoordsPair, 2, sf::LinesStrip);
+		m_Window->draw(currentCoordsPair, 2, sf::LinesStrip);
 		
 	}
 
 	//draw ball
 	renderManager->Render();
-	window.display();
+	m_Window->display();
 
 	return true;
 }
 
 
-bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& window) {
+bool CheckForInput(Ball& ball) {
 
 	//check all bools for progession
 
@@ -409,15 +353,18 @@ bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& w
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 	{
 		// left key is pressed: move our character
-		m_Players[0]->m_MovementToApply.x -= Player::BASE_MOVEMENT_SPEED;
 		
+		playerManager->m_Players[0]->m_MovementToApply.x -= Player::BASE_MOVEMENT_SPEED;
+		playerManager->m_Players[0]->m_PlayerWasGivenInput = true;
+	
 		return true;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 	{
 		// left key is pressed: move our character
-		m_Players[0]->m_MovementToApply.x += Player::BASE_MOVEMENT_SPEED;
+		playerManager->m_Players[0]->m_MovementToApply.x += Player::BASE_MOVEMENT_SPEED;
+		playerManager->m_Players[0]->m_PlayerWasGivenInput = true;
 		
 		return true;
 	}
@@ -451,8 +398,8 @@ bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& w
 		
 		DrawTileEffects(window);*/
 		//SpawnBall();
-		m_Players[0]->m_RemainingSpeedBuffTime = m_Players[0]->m_SpeedIncreasedDuration;
-		m_Players[0]->m_SpeedIsIncreased = true;
+		playerManager->m_Players[0]->m_RemainingSpeedBuffTime = playerManager->m_Players[0]->m_SpeedIncreasedDuration;
+		playerManager->m_Players[0]->m_SpeedIsIncreased = true;
 		inputAllowed[8] = false;
 	}
 
@@ -487,8 +434,8 @@ bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& w
 
 void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector) {
 
-	sf::Vector2f leftPos = sf::Vector2f(m_Players[0]->m_Position.x - (m_Players[0]->m_Dimensions.x * Player::RIM_PERCENTAGE), m_Players[0]->m_Position.y);
-	sf::Vector2f rightPos = sf::Vector2f(m_Players[0]->m_Position.x + (m_Players[0]->m_Dimensions.x * Player::RIM_PERCENTAGE), m_Players[0]->m_Position.y);
+	sf::Vector2f leftPos = sf::Vector2f(playerManager->m_Players[0]->m_Position.x - (playerManager->m_Players[0]->m_Dimensions.x * Player::RIM_PERCENTAGE), playerManager->m_Players[0]->m_Position.y);
+	sf::Vector2f rightPos = sf::Vector2f(playerManager->m_Players[0]->m_Position.x + (playerManager->m_Players[0]->m_Dimensions.x * Player::RIM_PERCENTAGE), playerManager->m_Players[0]->m_Position.y);
 	//left coords & color
 	m_PlayerNormalLineCoords[0].position = leftPos;
 	m_PlayerNormalLineCoords[0].color = sf::Color::Cyan;
@@ -505,75 +452,16 @@ void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f right
 	m_PlayerNormalLineCoords[3].color = sf::Color::Cyan;
 
 	//reflection incoming + outgoing vectors
-	m_PlayerNormalLineCoords[4].position = m_Players[0]->m_Position - (ballToPlayerVector * 1000.0f);
+	m_PlayerNormalLineCoords[4].position = playerManager->m_Players[0]->m_Position - (ballToPlayerVector * 1000.0f);
 	m_PlayerNormalLineCoords[4].color = sf::Color::Red;
 
-	m_PlayerNormalLineCoords[5].position = m_Players[0]->m_Position;
+	m_PlayerNormalLineCoords[5].position = playerManager->m_Players[0]->m_Position;
 	m_PlayerNormalLineCoords[5].color = sf::Color::Red;
 
-	m_PlayerNormalLineCoords[6].position = m_Players[0]->m_Position;
+	m_PlayerNormalLineCoords[6].position = playerManager->m_Players[0]->m_Position;
 	m_PlayerNormalLineCoords[6].color = sf::Color::Red;
 
-	m_PlayerNormalLineCoords[7].position = m_Players[0]->m_Position + (newBallDirVector * 1000.0f);
+	m_PlayerNormalLineCoords[7].position = playerManager->m_Players[0]->m_Position + (newBallDirVector * 1000.0f);
 	m_PlayerNormalLineCoords[7].color = sf::Color::Red;
-}
-
-
-TileType CheckEffectWithPlayerCollision(bool* collisionBool, Player& player) {
-
-	TileType foundType = TileType::NoEvent;
-	int length = droppingEffectManager->m_CurrentlyShownEffects.size();
-	for (int i = 0; i < length; i++) {
-		//check if tile is colliding with player
-		if (!droppingEffectManager->m_CurrentlyShownEffects[i].m_IsActive) {
-			continue;
-		}
-		sf::Vector2f effectPos = droppingEffectManager->m_CurrentlyShownEffects[i].m_Position;
-
-		float distanceEffectPlayerY = abs(effectPos.y - player.m_Position.y);
-		if (distanceEffectPlayerY < 2.0f) {
-			if (effectPos.x < (player.m_Position.x + (player.m_Dimensions.x / 2.0f)) && effectPos.x >(player.m_Position.x - (player.m_Dimensions.x / 2.0f))) {
-				foundType = droppingEffectManager->m_CurrentlyShownEffects[i].m_TileEffectType;
-				droppingEffectManager->m_CurrentlyShownEffects[i].m_IsActive = false;
-				*collisionBool = true;
-				
-				return foundType;
-			}
-		}
-
-		
-		//if yes, return 
-	}
-
-	*collisionBool = false;
-	return foundType;
-}
-
-//I NEED A DELETE FUCTION FOR WHEN THE EFFECT FALLS OUT OF WINDOW SCOPE
-bool CheckForEffectUsage() {
-	bool collisionPlayerWithEffect = false;
-	for (int i = 0; i < m_Players.size(); i++) {
-		TileType effectType = CheckEffectWithPlayerCollision(&collisionPlayerWithEffect, *m_Players[i]);
-		if (collisionPlayerWithEffect) {
-			switch (effectType) {
-			case TileType::AddedBall:
-				std::cout << "Added Ball!" << std::endl;
-				ballManager->CreateNewBall();
-				break;
-			case TileType::QuickerPlayer:
-				std::cout << "Quicker Player!" << std::endl;
-				m_Players[i]->m_RemainingSpeedBuffTime = m_Players[i]->m_SpeedIncreasedDuration;
-				m_Players[i]->m_SpeedIsIncreased = true;
-				break;
-			case TileType::NoEvent:
-				std::cout << "No Event!" << std::endl;
-				break;
-
-			}
-			return true;
-		}
-	}
-	
-	return false;
 }
 

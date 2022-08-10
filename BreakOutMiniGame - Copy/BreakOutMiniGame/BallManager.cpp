@@ -1,4 +1,5 @@
 #include "BallManager.h"
+#include "PlayerManager.h"
 #include <cassert>
 
  sf::Vector2f BallManager::m_BallStarterPosition_UNALTERED = sf::Vector2f(0.0f, 0.0f);
@@ -93,10 +94,13 @@ bool BallManager::CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f* bounceDi
 	float testingX = futureBallPosition.x;
 	float testingY = futureBallPosition.y;
 
-	for (int i = 0; i < GameManager::m_Players->size(); i++) {
+	PlayerManager& playerManager = static_cast<PlayerManager&>(*GameManager::m_ManagerMap[ManagerType::playerManager_T]);
+	
+
+	for (int i = 0; i < playerManager.m_Players.size(); i++) {
 
 
-		Player& currentPlayer = *(*GameManager::m_Players)[i];
+		Player& currentPlayer = *playerManager.m_Players[i];
 		/*std::vector<Player*>& currentPlayer = *GameManager::m_Players;*/
 		float minPlayerX = currentPlayer.m_Position.x - (currentPlayer.m_Dimensions.x / 2.0f);
 		float maxPlayerX = currentPlayer.m_Position.x + (currentPlayer.m_Dimensions.x / 2.0f);
@@ -176,7 +180,7 @@ bool BallManager::CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f* bounceDi
 			return true;
 		}
 		if (playerCollideVertical) {
-			*bounceDirection = CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision, ball, *(*GameManager::m_Players)[i]);
+			*bounceDirection = CalculateBounceVector(futureBallPosition, CollisionType::VerticalCollision, ball, (*playerManager.m_Players[i]));
 			return true;
 		}
 

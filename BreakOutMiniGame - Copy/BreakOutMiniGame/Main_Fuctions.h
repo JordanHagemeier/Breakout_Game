@@ -9,19 +9,13 @@
 const float scalingFactor = 3.0f;
 
 
-
-bool CreateNewPlayer();
+void CreateManagers();
+void InitializeManagers();
 bool SetUpInputCountingSystem();
 
-bool CheckForInput(Ball& ball, std::vector<Tile*> gametiles, sf::RenderWindow& window);
+bool CheckForInput(Ball& ball);
 bool DoGameLoopCalculations();
-bool RenderGameData(sf::RenderWindow& window);
+bool RenderGameData();
 
 bool MoveBallThroughInput(Ball& ball);
 void UpdateCollisionDebugDrawings(sf::Vector2f leftRimNormal, sf::Vector2f rightRimNormal, sf::Vector2f ballToPlayerVector, sf::Vector2f newBallDirVector);
-
-bool UpdatePlayerPosition();
-bool CheckPlayersForBuffEffect();
-
-TileType CheckEffectWithPlayerCollision(bool* collisionBool, Player& player);
-bool CheckForEffectUsage();
