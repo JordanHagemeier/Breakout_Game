@@ -39,6 +39,8 @@ class TileManager : public ManagerInterface {
 			m_Tiles[i]->UpdateTileColorBasedOnHits(renderManager);
 		}
 	}
+	virtual void TerminateManager();
+
 	bool InitializeTileVector();
 	void UpdateTileAfterCollision(int tileID);
 };

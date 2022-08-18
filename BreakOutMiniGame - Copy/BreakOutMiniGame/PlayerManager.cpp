@@ -35,3 +35,20 @@ void PlayerManager::UpdatePlayers() {
 		
 	}
 }
+
+void PlayerManager::TerminateManager() {
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+	for (Player* player : m_Players) {
+		renderManager.DeleteShape(player->m_VisualID[0]);
+		renderManager.DeleteShape(player->m_VisualID[1]);
+		renderManager.DeleteShape(player->m_VisualID[2]);
+
+	}
+}

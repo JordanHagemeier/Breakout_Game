@@ -6,7 +6,7 @@ const float Tile::OUTLINE_THICKNESS = 0.5f;
 
 Tile::Tile(sf::Vector2f pos, TileType type, sf::Color col, int id) {
 
-	tileVisualID = id;
+	m_VisualID = id;
 	isAlive = true;
 	position = pos;
 	hitCount = 0;
@@ -28,7 +28,7 @@ Tile::Tile(sf::Vector2f pos, TileType type, sf::Color col, int id) {
 bool Tile::UpdateTileColorBasedOnHits(RenderManager& renderManager) {
 
 	if (!isAlive) {
-		renderManager.DeleteShape(tileVisualID);
+		renderManager.DeleteShape(m_VisualID);
 		return true;
 	}
 	float currentHitPercentage = 1.0f - (float)hitCount / allowedHits;
@@ -38,7 +38,7 @@ bool Tile::UpdateTileColorBasedOnHits(RenderManager& renderManager) {
 	sf::Uint8 alphaPercentage = 255;
 
 	sf::Color color = sf::Color(redPercentage, greenPercentage, bluePercentage, alphaPercentage);
-	std::shared_ptr<sf::RectangleShape> currentTile = std::dynamic_pointer_cast<sf::RectangleShape>(renderManager.GetShape(tileVisualID));
+	std::shared_ptr<sf::RectangleShape> currentTile = std::dynamic_pointer_cast<sf::RectangleShape>(renderManager.GetShape(m_VisualID));
 	//sf::RectangleShape* currentTile = (sf::RectangleShape*) renderManager.GetShape(tileVisualID);
 	currentTile->setFillColor(color);
 

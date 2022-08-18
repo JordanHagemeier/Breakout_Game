@@ -6,12 +6,17 @@
 #include <cassert>
 
 void DroppingEffectManager::SetupDroppingEffects() {
-	RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
 	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
 
 	TileManager& tileManager = static_cast<TileManager&>(*GameManager::m_ManagerMap[ManagerType::tileManager_T]);
 	assert(tileManager.HasFinishedInitialization(), "Tile Manager not yet fully initialized! See initialization process & order.");
-	for (int i = 0; i < m_TileArrayLength; i++) {
+	for (int i = 0; i < tileManager.m_Tiles.size(); i++) {
 
 		/*if (!tileManager.HasFinishedInitialization()) {
 			std::cout << "Tile Manager not yet fully initialized! See initialization process & order." <<std::endl;
@@ -19,17 +24,21 @@ void DroppingEffectManager::SetupDroppingEffects() {
 		}*/
 
 		//setup effects for each tile
+		// add delete in unint
+		// -> raii "resource allocation is initialization"
+
+		//memory leak: instead use make_shared(constructor arguments)
+		std::shared_ptr<sf::RectangleShape>rect_shared = std::make_shared<sf::RectangleShape>(sf::Vector2f(10.0f, 10.0f));
+		// ....
+		rect_shared->setPosition(tileManager.m_Tiles[i]->position);
+		rect_shared->setFillColor(tileManager.m_Tiles[i]->baseColor);
+
+
 		DroppingEffect* newEffect = new DroppingEffect();
-
-		sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(10.0f, 10.0f));
-		rect->setPosition(tileManager.m_Tiles[i]->position);
-		rect->setFillColor(tileManager.m_Tiles[i]->baseColor);
-		std::shared_ptr<sf::RectangleShape>rect_shared = std::make_shared<sf::RectangleShape>(*rect);
-
 		newEffect->m_TileEffectType = tileManager.m_Tiles[i]->tileType;
 		newEffect->m_VisualID = renderManager.AddShape(rect_shared);
-		newEffect->m_Position = rect->getPosition();
-		newEffect->m_BaseColor = rect->getFillColor();
+		newEffect->m_Position = rect_shared->getPosition();
+		newEffect->m_BaseColor = rect_shared->getFillColor();
 		m_CurrentlyShownEffects.push_back(*newEffect);
 
 
@@ -38,9 +47,16 @@ void DroppingEffectManager::SetupDroppingEffects() {
 void DroppingEffectManager::UpdateTileEffectVisuals() {
 	//go through all tile effects in the list and update their position
 	//then draw them
-	float downwardMovementIncrement = 0.02f;
+	float downwardMovementIncrement = 0.02f; //constexpr oder const
 	int amount = m_CurrentlyShownEffects.size();
 	for (int i = 0; i < amount; i++) {
+	// im game manager:
+	// Step 1:
+	// ManagerInterface* GetManager(ManagerType type);
+	// Step 2:
+	// T* GetManager<T>();
+	// m_ManagerMap[T::MType]
+	// RenderManager* renderManager = GameManager::GetManager<RenderManager>();
 		RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
 
 		int currentID = m_CurrentlyShownEffects[i].m_VisualID;
@@ -48,6 +64,7 @@ void DroppingEffectManager::UpdateTileEffectVisuals() {
 
 		if (!m_CurrentlyShownEffects[i].m_IsActive) {
 			currentEffect_Visual->setFillColor(sf::Color::Transparent);
+			// return;
 		}
 
 		if (m_CurrentlyShownEffects[i].m_IsActive) {
@@ -64,6 +81,11 @@ void DroppingEffectManager::UpdateTileEffectVisuals() {
 
 
 	}
+
+	//for (const DroppingEffect& effect : m_CurrentlyShownEffects)
+	//{
+
+	//}
 
 }
 
@@ -130,4 +152,19 @@ bool DroppingEffectManager::CheckForEffectUsage() {
 	}
 
 	return false;
+}
+
+void DroppingEffectManager::TerminateManager() {
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+	for (DroppingEffect effect : m_CurrentlyShownEffects) {
+		renderManager.DeleteShape(effect.m_VisualID);
+
+	}
 }

@@ -24,7 +24,7 @@ public:
 	static const float OUTLINE_THICKNESS;
 	sf::Color		maxHitColor = sf::Color::Red;
 
-	int				tileVisualID = -1;
+	int				m_VisualID = -1;
 	int				hitCount = 0;
 	int				allowedHits = 0;
 	bool			isAlive = true;

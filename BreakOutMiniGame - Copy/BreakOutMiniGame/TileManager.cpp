@@ -72,3 +72,18 @@ void TileManager::UpdateTileAfterCollision(int tileID) {
 		droppingEffectsManager->ActivateTileEffect(tileID);
 	}
 }
+
+void TileManager::TerminateManager() {
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+	for (Tile* tile : m_Tiles) {
+		renderManager.DeleteShape(tile->m_VisualID);
+
+	}
+}

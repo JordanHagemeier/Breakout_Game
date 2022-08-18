@@ -280,7 +280,7 @@ bool MoveBallThroughInput(Ball& ball) {
 		ball.ballPosition = ball.ballPosition + (ball.ballDirection * 2.0f);
 
 
-		std::shared_ptr<sf::CircleShape> ballVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(ball.ballVisualID));
+		std::shared_ptr<sf::CircleShape> ballVisual = std::static_pointer_cast<sf::CircleShape>(renderManager->GetShape(ball.m_VisualID));
 		//std::shared_ptr<sf::Shape> ballVisual = (std::shared_ptr<sf::Shape>)renderManager->GetShape(ball.ballVisualID);
 		ballVisual->setPosition(ball.ballPosition);
 	}

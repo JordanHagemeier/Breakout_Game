@@ -11,7 +11,7 @@
 //->jedes Object was rendern will, holt sich vom RManager ne id für sein rendering dings
 //-- > Render& Gamelogic mehr trennen
 
-class RenderManager : public ManagerInterface{
+class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 
 	std::map<int, std::shared_ptr<sf::Shape>> m_ShapesToRender;
 	sf::RenderWindow* m_CurrentWindow; 
@@ -38,6 +38,7 @@ class RenderManager : public ManagerInterface{
 		virtual void Tick() {
 			//std::cout<< "RenderManager Tick!" << std::endl;
 		}
+		virtual void TerminateManager(){};
 
 		bool Render();
 		void SetRenderWindow(sf::RenderWindow& window) { m_CurrentWindow = &window; }

@@ -14,6 +14,7 @@ class BallManager : public ManagerInterface {
 	public: 
 		static sf::Vector2f m_BallStarterPosition_UNALTERED;
 		static sf::Vector2f m_BallStarterPosition_ALTERED;
+		static const float STARTER_ANGLE;
 
 		std::vector<Ball*> m_Balls_In_Use; 
 
@@ -35,6 +36,9 @@ class BallManager : public ManagerInterface {
 			UpdateBallVisualPositions();
 		}
 		virtual ManagerType GetManagerType() { return ManagerType::ballManager_T; }
+		virtual void TerminateManager();
+
+
 		void CreateNewBall();
 		void UpdateBallBehavior();
 

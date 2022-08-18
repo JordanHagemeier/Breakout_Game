@@ -25,6 +25,8 @@ public:
 	virtual void Tick() {
 		UpdatePlayers();
 	}
+
+	virtual void TerminateManager();
 	void SetUpPlayerInitData();
 	void CreateNewPlayer();
 	void UpdatePlayers();

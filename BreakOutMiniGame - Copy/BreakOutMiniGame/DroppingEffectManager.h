@@ -35,6 +35,8 @@ public:
 		UpdateTileEffectVisuals();
 		CheckForEffectUsage();
 	}
+	virtual void TerminateManager();
+
 	void SetupDroppingEffects();
 	void UpdateTileEffectVisuals();
 	void ActivateTileEffect(int arrayPosition);
