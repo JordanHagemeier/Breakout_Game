@@ -30,7 +30,7 @@ class BallManager : public ManagerInterface {
 			m_InitializationIsDone = true;
 		}
 
-		virtual bool HasFinishedInitialization(){ return m_InitializationIsDone;}
+		virtual bool HasFinishedInitialization() const { return m_InitializationIsDone;}
 		virtual void Tick(){ 
 			UpdateBallBehavior();
 			UpdateBallVisualPositions();
@@ -43,10 +43,10 @@ class BallManager : public ManagerInterface {
 		void UpdateBallBehavior();
 
 		//I think I would actually have to use a collision manager to make all of this smooth and not twisted with other managers
-		bool CheckForWallCollision(Ball& currentBall);
+	/*	bool CheckForWallCollision(Ball& currentBall);
 		bool CheckForCollisionWithPlayer(Ball& ball, sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition);
 		sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Ball& ball, Player& player);
-		bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::Vector2f* bounceDirection);
+		bool CheckForBallTileCollisionAndMovementChanges(Ball& ball, sf::Vector2f* bounceDirection);*/
 
 		void UpdateBallVisualPositions();
 };

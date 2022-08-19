@@ -66,7 +66,7 @@ void TileManager::UpdateTileAfterCollision(int tileID) {
 	int currentHitCount = currentTile.hitCount;
 	if (currentHitCount <= 0) {
 		currentTile.isAlive = false;
-		/*DropTileEffect(*gametiles[i]);*/
+		
 		DroppingEffectManager* droppingEffectsManager = static_cast<DroppingEffectManager*>(GameManager::m_ManagerMap[ManagerType::droppingEffectManager_T]);
 
 		droppingEffectsManager->ActivateTileEffect(tileID);
@@ -84,6 +84,6 @@ void TileManager::TerminateManager() {
 
 	for (Tile* tile : m_Tiles) {
 		renderManager.DeleteShape(tile->m_VisualID);
-
+		delete tile;
 	}
 }

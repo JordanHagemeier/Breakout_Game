@@ -31,7 +31,7 @@ class TileManager : public ManagerInterface {
 		InitializeTileVector();
 		m_InitializationIsDone = true;
 	}
-	virtual bool HasFinishedInitialization() { return m_InitializationIsDone; }
+	virtual bool HasFinishedInitialization() const { return m_InitializationIsDone; }
 
 	virtual void Tick() {
 		for (int i = 0; i < m_Tiles.size(); i++) {

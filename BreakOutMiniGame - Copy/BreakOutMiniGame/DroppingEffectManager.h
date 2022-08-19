@@ -29,7 +29,7 @@ public:
 		m_InitializationIsDone = true;
 	}
 
-	virtual bool HasFinishedInitialization() { return m_InitializationIsDone; }
+	virtual bool HasFinishedInitialization() const { return m_InitializationIsDone; }
 	virtual void Tick()
 	{
 		UpdateTileEffectVisuals();

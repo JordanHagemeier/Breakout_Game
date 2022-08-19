@@ -11,6 +11,13 @@
 //->jedes Object was rendern will, holt sich vom RManager ne id für sein rendering dings
 //-- > Render& Gamelogic mehr trennen
 
+struct RenderInfo {
+	sf::RenderWindow* window;
+	sf::Vector2f windowDimensions_px;
+	sf::Vector2f windowSegmentDimensions_px;
+	float scalingFactor;
+};
+
 class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 
 	std::map<int, std::shared_ptr<sf::Shape>> m_ShapesToRender;
@@ -24,17 +31,18 @@ class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 		float m_ScalingFactor;
 
 		RenderManager() = default;
-		RenderManager(sf::RenderWindow& window, sf::Vector2f windowDimensions_px, sf::Vector2f windowSegmentDimensions_px, float scalingFactor) {
-			m_CurrentWindow = &window;
-			m_WindowDimensions_px = windowDimensions_px;
-			m_WindowSegmentDimensions_px = windowSegmentDimensions_px;
-			m_ScalingFactor = scalingFactor;
+		RenderManager(RenderInfo info) {
+			m_CurrentWindow = info.window;
+			m_WindowDimensions_px = info.windowDimensions_px;
+			m_WindowSegmentDimensions_px = info.windowSegmentDimensions_px;
+			m_ScalingFactor = info.scalingFactor;
 			m_InitializationIsDone = true;
 		}
 
+		
 		virtual ManagerType GetManagerType(){return ManagerType::renderManager_T;}
 		virtual void TickBeforeStart(){}
-		virtual bool HasFinishedInitialization() { return m_InitializationIsDone; }
+		virtual bool HasFinishedInitialization() const { return m_InitializationIsDone; }
 		virtual void Tick() {
 			//std::cout<< "RenderManager Tick!" << std::endl;
 		}

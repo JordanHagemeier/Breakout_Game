@@ -14,7 +14,7 @@ public:
 	std::vector<Player*> m_Players;
 	PlayerManager() = default;
 
-	virtual bool HasFinishedInitialization()	{ return m_InitializationIsDone; };
+	virtual bool HasFinishedInitialization() const { return m_InitializationIsDone; };
 	virtual ManagerType GetManagerType()	{return ManagerType::playerManager_T;}
 	virtual void TickBeforeStart(){
 

@@ -1,5 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "CollisionType.h"
+#include "Player.h"
+
 
 struct BallInfo {
 	float radius;
@@ -30,6 +33,13 @@ class Ball {
 			m_VisualID = info.visualID;
 			ballDirection = sf::Vector2f(std::cos(ballAngle) * BALL_BASE_SPEED, std::sin(ballAngle) * BALL_BASE_SPEED);
 		}
+
+
+		void Update();
+		bool CheckForWallCollision();
+		bool CheckForCollisionWithPlayer(sf::Vector2f* bounceDirection, sf::Vector2f* nextBallPosition);
+		sf::Vector2f CalculateBounceVector(sf::Vector2f futureBallPosition, CollisionType type, Player& player);
+		bool CheckForBallTileCollisionAndMovementChanges(sf::Vector2f* bounceDirection);
 		
 
 		

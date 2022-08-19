@@ -1,6 +1,7 @@
 #pragma once
+#include <cassert>
 #include <SFML/Graphics.hpp>
-#include "RenderManager.h"
+#include "GameManager.h"
 #include "MathHelper.h"
 
 class Player {
@@ -33,8 +34,10 @@ class Player {
 		/*InitializeVisuals(renderManager);*/
 	}
 
-	void InitializeVisuals(RenderManager& renderManager);
-	void UpdatePlayerVisuals(RenderManager& renderManager);
-	bool CheckPlayerForBuffEffect(RenderManager& renderManager);
+	void InitializeVisuals();
+	void Update();
+	void UpdatePlayerVisuals();
+	bool CheckPlayerForBuffEffect();
+	void TerminatePlayer();
 
 };

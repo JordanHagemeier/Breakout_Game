@@ -16,7 +16,8 @@ class ManagerInterface {
 public:
 	//using MType = Type;
 
-	virtual bool HasFinishedInitialization() = 0;
+	
+	virtual bool HasFinishedInitialization() const = 0;
 	virtual ManagerType GetManagerType() = 0;
 	virtual void TickBeforeStart() = 0;
 	virtual void Tick() = 0;

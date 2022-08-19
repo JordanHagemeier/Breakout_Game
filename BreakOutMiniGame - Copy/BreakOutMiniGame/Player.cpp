@@ -1,11 +1,22 @@
+#include <iostream>
 #include "Player.h"
+#include "RenderManager.h"
 
 const sf::Color Player::BASE_COLOR = sf::Color::Green;
 const sf::Color Player::BUFF_COLOR = sf::Color::Cyan;
 const float		Player::BASE_MOVEMENT_SPEED = 0.09f;
 const float		Player::RIM_PERCENTAGE = 0.3f;
 
-void Player::InitializeVisuals(RenderManager& renderManager) {
+void Player::InitializeVisuals() {
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+
 	sf::RectangleShape* playerTileMiddle = new sf::RectangleShape(sf::Vector2f(m_Dimensions.x * (1.0f - RIM_PERCENTAGE), m_Dimensions.y));
 	sf::RectangleShape* playerTileLeft = new sf::RectangleShape(sf::Vector2f(m_Dimensions.x * RIM_PERCENTAGE, m_Dimensions.y));
 	sf::RectangleShape* playerTileRight =new sf::RectangleShape(sf::Vector2f(m_Dimensions.x * RIM_PERCENTAGE, m_Dimensions.y));
@@ -38,7 +49,25 @@ void Player::InitializeVisuals(RenderManager& renderManager) {
 
 }
 
-void Player::UpdatePlayerVisuals(RenderManager& renderManager) {
+void Player::Update() {
+	
+	if (m_PlayerWasGivenInput) {
+		CheckPlayerForBuffEffect();
+		UpdatePlayerVisuals();
+		m_PlayerWasGivenInput = false;
+	}
+
+}
+
+void Player::UpdatePlayerVisuals() {
+
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
 
 	//calculate delta position 
 	sf::Vector2f oldPos = m_Position;
@@ -56,7 +85,15 @@ void Player::UpdatePlayerVisuals(RenderManager& renderManager) {
 	playerVisual_Right->setPosition(playerVisual_Right->getPosition() + deltaPosition);
 }
 
-bool Player::CheckPlayerForBuffEffect(RenderManager& renderManager) {
+bool Player::CheckPlayerForBuffEffect() {
+
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return false;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
 
 
 	if (m_SpeedIsIncreased) {
@@ -84,4 +121,18 @@ bool Player::CheckPlayerForBuffEffect(RenderManager& renderManager) {
 		
 	return true;
 	
+}
+
+void Player::TerminatePlayer() {
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+	for (int id : m_VisualID) {
+		renderManager.DeleteShape(id);
+	}
 }

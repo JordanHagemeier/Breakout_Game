@@ -82,11 +82,6 @@ void DroppingEffectManager::UpdateTileEffectVisuals() {
 
 	}
 
-	//for (const DroppingEffect& effect : m_CurrentlyShownEffects)
-	//{
-
-	//}
-
 }
 
 void DroppingEffectManager::ActivateTileEffect(int arrayPosition) {
@@ -165,6 +160,6 @@ void DroppingEffectManager::TerminateManager() {
 
 	for (DroppingEffect effect : m_CurrentlyShownEffects) {
 		renderManager.DeleteShape(effect.m_VisualID);
-
+		delete &effect;
 	}
 }

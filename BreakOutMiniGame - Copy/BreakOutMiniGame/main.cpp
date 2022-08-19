@@ -215,7 +215,12 @@ int main()
 void CreateManagers() {
 	//Manager Creation
 		//1) Render Manager, which is essential for all others
-	renderManager = new RenderManager(*m_Window, sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX), sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT), scalingFactor);
+	RenderInfo renderInfo;
+	renderInfo.window = m_Window;
+	renderInfo.windowDimensions_px = sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX);
+	renderInfo.windowSegmentDimensions_px = sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT);
+	renderInfo.scalingFactor = scalingFactor;
+	renderManager = new RenderManager(renderInfo);
 
 	//2)Tile Manager
 	tileManager = new TileManager();
@@ -231,12 +236,8 @@ void CreateManagers() {
 	playerManager = new PlayerManager();
 
 	//6) Game Manager which combines all of the above
-	GameManagerInfo info;
-
-	info.balls = &ballManager->m_Balls_In_Use;
-	info.tiles = &tileManager->m_Tiles;
-	/*info.players = &m_Players;*/
-	info.tileTypeToColorMap = m_TileTypeToColor;
+	GameManagerInfo GM_Info;
+	GM_Info.tileTypeToColorMap = m_TileTypeToColor;
 
 
 	std::map<ManagerType, ManagerInterface*> managersMap;
@@ -246,9 +247,8 @@ void CreateManagers() {
 	managersMap[ManagerType::renderManager_T] = renderManager;
 	managersMap[ManagerType::playerManager_T] = playerManager;
 
-	info.managerMap = managersMap;
-
-	gameManager = new GameManager(info);
+	GM_Info.managerMap = managersMap;
+	gameManager = new GameManager(GM_Info);
 
 
 }
