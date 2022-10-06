@@ -7,6 +7,7 @@ enum ManagerType {
 	tileManager_T,
 	droppingEffectManager_T,
 	playerManager_T,
+	particleManager_T,
 	gameManager_T
 };
 

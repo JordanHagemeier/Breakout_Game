@@ -7,15 +7,22 @@
 
 void DroppingEffectManager::SetupDroppingEffects() {
 	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
-	if (ptrToRenderManager == nullptr) {
+	if (!ptrToRenderManager) {
 		std::cout << "RenderManager not yet initialized!" << std::endl;
 		return;
 	}
 	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
 	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
 
-	TileManager& tileManager = static_cast<TileManager&>(*GameManager::m_ManagerMap[ManagerType::tileManager_T]);
+
+	ManagerInterface* ptrToTileManager = GameManager::GetManagerByType(ManagerType::tileManager_T);
+	if (!ptrToTileManager) {
+		std::cout << "Tile Manager not yet initialized!" << std::endl;
+		return;
+	}
+	TileManager& tileManager = static_cast<TileManager&>(*ptrToTileManager);
 	assert(tileManager.HasFinishedInitialization(), "Tile Manager not yet fully initialized! See initialization process & order.");
+
 	for (int i = 0; i < tileManager.m_Tiles.size(); i++) {
 
 		/*if (!tileManager.HasFinishedInitialization()) {

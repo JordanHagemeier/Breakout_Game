@@ -50,7 +50,9 @@ class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 
 		bool Render();
 		void SetRenderWindow(sf::RenderWindow& window) { m_CurrentWindow = &window; }
+		const sf::RenderWindow* GetRenderWindow() {return m_CurrentWindow;}
 		std::shared_ptr<sf::Shape> GetShape(int id);
 		int AddShape(std::shared_ptr<sf::Shape> shape);
+		
 		bool DeleteShape(int id);
 };

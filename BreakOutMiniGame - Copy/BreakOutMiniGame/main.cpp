@@ -16,6 +16,7 @@
 #include "BallManager.h"
 #include "GameManager.h"
 #include "PlayerManager.h"
+#include "ParticleEffectManager.h"
 
 
 /* //F
@@ -123,7 +124,7 @@ TileManager* tileManager;
 BallManager* ballManager; 
 GameManager* gameManager;
 PlayerManager* playerManager;
-
+ParticleEffectManager* particleEffectManager;
 
 int main()
 {
@@ -235,6 +236,9 @@ void CreateManagers() {
 	//(optional: 5) Player Manager?)
 	playerManager = new PlayerManager();
 
+	//Particle Effect Manager
+	particleEffectManager = new ParticleEffectManager();
+
 	//6) Game Manager which combines all of the above
 	GameManagerInfo GM_Info;
 	GM_Info.tileTypeToColorMap = m_TileTypeToColor;
@@ -246,6 +250,7 @@ void CreateManagers() {
 	managersMap[ManagerType::tileManager_T] = tileManager;
 	managersMap[ManagerType::renderManager_T] = renderManager;
 	managersMap[ManagerType::playerManager_T] = playerManager;
+	managersMap[ManagerType::particleManager_T] = particleEffectManager;
 
 	GM_Info.managerMap = managersMap;
 	gameManager = new GameManager(GM_Info);
@@ -375,11 +380,11 @@ bool CheckForInput(Ball& ball) {
 		inputAllowed[0] = false;
 	}
 
-	/*if (sf::Keyboard::isKeyPressed(sf::Keyboard::O) && inputAllowed[7]) {
+	if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && inputAllowed[7]) {
 
-		std::cout << "Player Pos:" << m_PlayerPosition.x << " ," << m_PlayerPosition.y << std::endl;
+		particleEffectManager->AddParticleEventAtPosition((sf::Vector2f)sf::Mouse::getPosition(*renderManager->GetRenderWindow()));
 		inputAllowed[7] = false;
-	}*/
+	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && inputAllowed[1]) {
 		m_GamePaused = !m_GamePaused;

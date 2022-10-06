@@ -1,4 +1,5 @@
 #include "TileManager.h"
+#include "ParticleEffectManager.h"
 #include <cassert>
 
 sf::Vector2f TileManager::TILE_DIMENSIONS = sf::Vector2f(0.0f, 0.0f);
@@ -67,9 +68,16 @@ void TileManager::UpdateTileAfterCollision(int tileID) {
 	if (currentHitCount <= 0) {
 		currentTile.isAlive = false;
 		
+		//drop a small square, starting from the tile position
 		DroppingEffectManager* droppingEffectsManager = static_cast<DroppingEffectManager*>(GameManager::m_ManagerMap[ManagerType::droppingEffectManager_T]);
-
 		droppingEffectsManager->ActivateTileEffect(tileID);
+
+
+		//notify particle effects manager to sprinkle in some particles
+		ManagerInterface* ptrToParticleManager = GameManager::GetManagerByType(ManagerType::particleManager_T);
+		ParticleEffectManager& particleManager = static_cast<ParticleEffectManager&>(*ptrToParticleManager);
+		assert(particleManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+		particleManager.AddParticleEventAtPosition(currentTile.position);
 	}
 }
 

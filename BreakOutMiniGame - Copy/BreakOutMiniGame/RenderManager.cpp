@@ -23,6 +23,7 @@ int RenderManager::AddShape(std::shared_ptr<sf::Shape> shape) {
 	m_ShapesToRender[m_IdCounter] = shape;
 	return m_IdCounter;
 }
+
 bool RenderManager::DeleteShape(int id) {
 	m_ShapesToRender.erase(id);
 

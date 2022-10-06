@@ -25,6 +25,8 @@
     <ClCompile Include="DroppingEffectManager.cpp" />
     <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ParticleEffect.cpp" />
+    <ClCompile Include="ParticleEffectManager.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayerManager.cpp" />
     <ClCompile Include="RenderManager.cpp" />
@@ -41,6 +43,8 @@
     <ClInclude Include="Main_Fuctions.h" />
     <ClInclude Include="ManagerInterface.h" />
     <ClInclude Include="MathHelper.h" />
+    <ClInclude Include="ParticleEffect.h" />
+    <ClInclude Include="ParticleEffectManager.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerManager.h" />
     <ClInclude Include="RenderManager.h" />
