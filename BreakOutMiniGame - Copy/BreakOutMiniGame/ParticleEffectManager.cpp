@@ -63,5 +63,17 @@ void ParticleEffectManager::UpdateParticles() {
 	}
 }
 void ParticleEffectManager::DeleteParticleEffects() {
-	// ~ Destructor here
+	
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (!ptrToRenderManager) {
+		std::cout << "RenderManager not yet initialized!" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+	assert(renderManager.HasFinishedInitialization(), "Render Manager not yet fully initialized! See initialization process & order.");
+
+	for (ParticleEffect* effect : m_ParticleEffects) {
+		renderManager.DeleteShape(effect->m_VisualID);
+		delete effect;
+	}
 }

@@ -167,6 +167,6 @@ void DroppingEffectManager::TerminateManager() {
 
 	for (DroppingEffect effect : m_CurrentlyShownEffects) {
 		renderManager.DeleteShape(effect.m_VisualID);
-		delete &effect;
+		
 	}
 }

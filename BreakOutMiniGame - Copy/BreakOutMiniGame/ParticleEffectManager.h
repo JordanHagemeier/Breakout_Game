@@ -29,7 +29,7 @@ class ParticleEffectManager : public ManagerInterface {
 			m_HasFinishedInitialization = true;
 		};
 		virtual void Tick() { UpdateParticles(); };
-		virtual void TerminateManager() {};
+		virtual void TerminateManager() { DeleteParticleEffects(); };
 
 		void SetUpParticleEffects();
 		void AddParticleEventAtPosition(sf::Vector2f pos);

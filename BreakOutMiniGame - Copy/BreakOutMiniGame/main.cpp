@@ -126,6 +126,8 @@ GameManager* gameManager;
 PlayerManager* playerManager;
 ParticleEffectManager* particleEffectManager;
 
+
+
 int main()
 {
 	
@@ -173,22 +175,26 @@ int main()
 	while (m_Window->isOpen())
 	{
 
+		
 		sf::Event event;
 		while (m_Window->pollEvent(event))
 		{
 			if (event.type == sf::Event::Resized)
 			{
 				// update the view to the new size of the window
-				float aspectRatio = (float)WINDOW_WIDTH_PX/WINDOW_HEIGHT_PX;
+				float aspectRatio = (float)WINDOW_WIDTH_PX / WINDOW_HEIGHT_PX;
 				sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
 				m_Window->setSize(sf::Vector2u(event.size.height * aspectRatio, event.size.height));
-				
+
 			}
 
-			if (event.type == sf::Event::Closed)
+			if (event.type == sf::Event::Closed) {
+				gameManager->TerminateGame();// IT AINT WORKING AS INTENDED, SON
 				m_Window->close();
-		}
+				return 0;
+			}
 
+		}
 		//Check for Input
 		CheckForInput(*ballManager->m_Balls_In_Use[0]);
 		
