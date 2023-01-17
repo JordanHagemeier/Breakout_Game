@@ -21,7 +21,7 @@
 
 class Tile {
 public:
-	static const float OUTLINE_THICKNESS;
+	/*static const float OUTLINE_THICKNESS;*/
 	sf::Color		maxHitColor = sf::Color::Red;
 
 	int				m_VisualID = -1;
@@ -34,6 +34,7 @@ public:
 	
 	Tile() = default;
 	Tile(sf::Vector2f pos, TileType type, sf::Color col, int id);
+	
 	
 
 	bool UpdateTileColorBasedOnHits(RenderManager& renderManager);

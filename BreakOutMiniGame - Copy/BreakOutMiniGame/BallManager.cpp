@@ -51,7 +51,9 @@ void BallManager::UpdateBallVisualPositions() {
 }
 
 void BallManager::TerminateManager() {
-	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+
+	m_Balls_In_Use.clear();
+	/*ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
 	if (ptrToRenderManager == nullptr) {
 		std::cout << "RenderManager not yet initialized!" << std::endl;
 		return;
@@ -62,5 +64,5 @@ void BallManager::TerminateManager() {
 	for (Ball* ball : m_Balls_In_Use) {
 		renderManager.DeleteShape(ball->m_VisualID);
 		delete ball;
-	}
+	}*/
 }

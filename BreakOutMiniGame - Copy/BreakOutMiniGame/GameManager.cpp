@@ -19,4 +19,5 @@ void GameManager::TerminateGame() {
 	for (it = m_ManagerMap.begin(); it != m_ManagerMap.end(); it++) {
 		it->second->TerminateManager();
 	}
+	
 }

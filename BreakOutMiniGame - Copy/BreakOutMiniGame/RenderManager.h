@@ -14,7 +14,7 @@
 struct RenderInfo {
 	sf::RenderWindow* window;
 	sf::Vector2f windowDimensions_px;
-	sf::Vector2f windowSegmentDimensions_px;
+	sf::Vector2f windowSegmentAmountPerDimension;
 	float scalingFactor;
 };
 
@@ -27,16 +27,19 @@ class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 
 	public: 
 		sf::Vector2f m_WindowDimensions_px;
-		sf::Vector2f m_WindowSegmentDimensions_px; 
+		sf::Vector2f m_SegmentCountPerWindowDimension; 
+		sf::Vector2f m_WindowPercentageSegmentPerDimension;
 		float m_ScalingFactor;
 
 		RenderManager() = default;
 		RenderManager(RenderInfo info) {
 			m_CurrentWindow = info.window;
 			m_WindowDimensions_px = info.windowDimensions_px;
-			m_WindowSegmentDimensions_px = info.windowSegmentDimensions_px;
+			m_SegmentCountPerWindowDimension = info.windowSegmentAmountPerDimension;
 			m_ScalingFactor = info.scalingFactor;
 			m_InitializationIsDone = true;
+			m_WindowPercentageSegmentPerDimension = sf::Vector2f(m_WindowDimensions_px.x / m_SegmentCountPerWindowDimension.x,
+				                                                 m_WindowDimensions_px.y / m_SegmentCountPerWindowDimension.y);
 		}
 
 		
@@ -46,7 +49,7 @@ class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 		virtual void Tick() {
 			//std::cout<< "RenderManager Tick!" << std::endl;
 		}
-		virtual void TerminateManager(){};
+		virtual void TerminateManager(){ DeleteAllShapes(); };
 
 		bool Render();
 		void SetRenderWindow(sf::RenderWindow& window) { m_CurrentWindow = &window; }
@@ -55,4 +58,5 @@ class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 		int AddShape(std::shared_ptr<sf::Shape> shape);
 		
 		bool DeleteShape(int id);
+		bool DeleteAllShapes();
 };

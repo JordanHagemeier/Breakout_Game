@@ -72,9 +72,9 @@ Feedback 31.07
 //if a tile is hit, then it bounces off + tile loses one "tile life" (changes graphics, or disables if it was hit too many times)
 
 //F constexpr
-const int WINDOW_SEGMENTS_WIDTH = 8;
-const int WINDOW_SEGMENTS_HEIGHT = 6;
-const int TILE_ARRAY_LENGTH = WINDOW_SEGMENTS_WIDTH*WINDOW_SEGMENTS_HEIGHT;
+const int AMOUNT_WINDOW_SEGMENTS_WIDTH = 8;
+const int AMOUNT_WINDOW_SEGMENTS_HEIGHT = 6;
+const int TILE_ARRAY_LENGTH = AMOUNT_WINDOW_SEGMENTS_WIDTH*AMOUNT_WINDOW_SEGMENTS_HEIGHT;
 sf::RenderWindow* m_Window;
 
 const int WINDOW_WIDTH_PX = 200 * scalingFactor; 
@@ -93,7 +93,6 @@ bool	m_NewInputAvailable = false; //F  not player related, but application relat
 //F === Until here ===
 
 //Tile Variables
-sf::Vector2f m_TileDimensions = sf::Vector2<float>((float)(WINDOW_WIDTH_PX/WINDOW_SEGMENTS_WIDTH), (float)(WINDOW_HEIGHT_PX/WINDOW_SEGMENTS_HEIGHT) / 3.0f);
 sf::Color m_NoHitColor;
 sf::Color m_FinalHitColor;
 
@@ -225,7 +224,7 @@ void CreateManagers() {
 	RenderInfo renderInfo;
 	renderInfo.window = m_Window;
 	renderInfo.windowDimensions_px = sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX);
-	renderInfo.windowSegmentDimensions_px = sf::Vector2f(WINDOW_SEGMENTS_WIDTH, WINDOW_SEGMENTS_HEIGHT);
+	renderInfo.windowSegmentAmountPerDimension = sf::Vector2f(AMOUNT_WINDOW_SEGMENTS_WIDTH, AMOUNT_WINDOW_SEGMENTS_HEIGHT);
 	renderInfo.scalingFactor = scalingFactor;
 	renderManager = new RenderManager(renderInfo);
 
@@ -257,6 +256,7 @@ void CreateManagers() {
 	managersMap[ManagerType::renderManager_T] = renderManager;
 	managersMap[ManagerType::playerManager_T] = playerManager;
 	managersMap[ManagerType::particleManager_T] = particleEffectManager;
+
 
 	GM_Info.managerMap = managersMap;
 	gameManager = new GameManager(GM_Info);

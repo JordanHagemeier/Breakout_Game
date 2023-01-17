@@ -1,6 +1,6 @@
 #include "Tile.h"
 
-const float Tile::OUTLINE_THICKNESS = 0.5f;
+//const float Tile::OUTLINE_THICKNESS = 0.5f;
 
 
 

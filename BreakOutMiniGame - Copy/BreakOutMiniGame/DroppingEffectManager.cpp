@@ -157,7 +157,8 @@ bool DroppingEffectManager::CheckForEffectUsage() {
 }
 
 void DroppingEffectManager::TerminateManager() {
-	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	m_CurrentlyShownEffects.clear();
+	/*ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
 	if (ptrToRenderManager == nullptr) {
 		std::cout << "RenderManager not yet initialized!" << std::endl;
 		return;
@@ -168,5 +169,5 @@ void DroppingEffectManager::TerminateManager() {
 	for (DroppingEffect effect : m_CurrentlyShownEffects) {
 		renderManager.DeleteShape(effect.m_VisualID);
 		
-	}
+	}*/
 }

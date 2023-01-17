@@ -44,4 +44,5 @@ void PlayerManager::TerminateManager() {
 		delete player;
 
 	}
+	m_Players.clear();
 }

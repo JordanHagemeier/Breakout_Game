@@ -29,3 +29,8 @@ bool RenderManager::DeleteShape(int id) {
 
 	return true;
 }
+
+bool RenderManager::DeleteAllShapes() {
+	m_ShapesToRender.clear();
+	return true;
+}

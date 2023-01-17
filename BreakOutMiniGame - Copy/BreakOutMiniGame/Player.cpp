@@ -124,7 +124,7 @@ bool Player::CheckPlayerForBuffEffect() {
 }
 
 void Player::TerminatePlayer() {
-	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	/*ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
 	if (ptrToRenderManager == nullptr) {
 		std::cout << "RenderManager not yet initialized!" << std::endl;
 		return;
@@ -134,5 +134,5 @@ void Player::TerminatePlayer() {
 
 	for (int id : m_VisualID) {
 		renderManager.DeleteShape(id);
-	}
+	}*/
 }

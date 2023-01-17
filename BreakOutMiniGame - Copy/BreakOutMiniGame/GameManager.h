@@ -47,7 +47,7 @@ class GameManager : public ManagerInterface{
 		virtual ManagerType GetManagerType() { return ManagerType::gameManager_T; };
 		virtual void TickBeforeStart() {};
 		virtual void Tick() {};
-		virtual void TerminateManager(){};
+		virtual void TerminateManager(){ m_TileTypeToColorMap.clear(); m_ManagerMap.clear(); };
 
 		static ManagerInterface* GetManagerByType(ManagerType type);
 		static void TerminateGame();

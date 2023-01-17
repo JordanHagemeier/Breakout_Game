@@ -64,7 +64,8 @@ void ParticleEffectManager::UpdateParticles() {
 }
 void ParticleEffectManager::DeleteParticleEffects() {
 	
-	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	m_ParticleEffects.clear();
+	/*ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
 	if (!ptrToRenderManager) {
 		std::cout << "RenderManager not yet initialized!" << std::endl;
 		return;
@@ -75,5 +76,5 @@ void ParticleEffectManager::DeleteParticleEffects() {
 	for (ParticleEffect* effect : m_ParticleEffects) {
 		renderManager.DeleteShape(effect->m_VisualID);
 		delete effect;
-	}
+	}*/
 }
