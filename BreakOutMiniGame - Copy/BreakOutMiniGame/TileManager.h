@@ -20,7 +20,7 @@ class TileManager : public ManagerInterface {
 
 
 	std::vector<Tile*> m_Tiles;
-	float coveredWindowPercentage = 0.5f;
+	float coveredWindowPercentage = 0.33f;
 
 
 	TileManager() = default;
