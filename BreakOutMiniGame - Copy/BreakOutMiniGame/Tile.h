@@ -23,8 +23,8 @@ class Tile {
 public:
 	/*static const float OUTLINE_THICKNESS;*/
 	sf::Color		maxHitColor = sf::Color::Red;
-
-	int				m_VisualID = -1;
+	int				m_ObjectID = -1;	
+	int				m_RenderID = -1;
 	int				hitCount = 0;
 	int				allowedHits = 0;
 	bool			isAlive = true;
@@ -33,7 +33,7 @@ public:
 	TileType		tileType = TileType::AddedBall; 
 	
 	Tile() = default;
-	Tile(sf::Vector2f pos, TileType type, sf::Color col, int id);
+	Tile(sf::Vector2f pos, TileType type, sf::Color col, int renderID, int objectID);
 	
 	
 

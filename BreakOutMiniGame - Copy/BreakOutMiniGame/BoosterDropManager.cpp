@@ -1,11 +1,11 @@
-#include "DroppingEffectManager.h"
+#include "BoosterDropManager.h"
 #include "GameManager.h"
 #include "TileManager.h"
 #include "PlayerManager.h"
 #include "BallManager.h"
 #include <cassert>
 
-void DroppingEffectManager::SetupDroppingEffects() {
+void BoosterDropManager::SetupDroppingEffects() {
 	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
 	if (!ptrToRenderManager) {
 		std::cout << "RenderManager not yet initialized!" << std::endl;
@@ -37,12 +37,12 @@ void DroppingEffectManager::SetupDroppingEffects() {
 		//memory leak: instead use make_shared(constructor arguments)
 		std::shared_ptr<sf::RectangleShape>rect_shared = std::make_shared<sf::RectangleShape>(sf::Vector2f(10.0f, 10.0f));
 		// ....
-		rect_shared->setPosition(tileManager.m_Tiles[i]->position);
-		rect_shared->setFillColor(tileManager.m_Tiles[i]->baseColor);
+		rect_shared->setPosition(tileManager.m_Tiles[i].position);
+		rect_shared->setFillColor(tileManager.m_Tiles[i].baseColor);
 
 
-		DroppingEffect* newEffect = new DroppingEffect();
-		newEffect->m_TileEffectType = tileManager.m_Tiles[i]->tileType;
+		DroppedBooster* newEffect = new DroppedBooster();
+		newEffect->m_TileEffectType = tileManager.m_Tiles[i].tileType;
 		newEffect->m_VisualID = renderManager.AddShape(rect_shared);
 		newEffect->m_Position = rect_shared->getPosition();
 		newEffect->m_BaseColor = rect_shared->getFillColor();
@@ -51,7 +51,7 @@ void DroppingEffectManager::SetupDroppingEffects() {
 
 	}
 }
-void DroppingEffectManager::UpdateTileEffectVisuals() {
+void BoosterDropManager::UpdateTileEffectVisuals() {
 	//go through all tile effects in the list and update their position
 	//then draw them
 	float downwardMovementIncrement = 0.02f; //constexpr oder const
@@ -91,11 +91,11 @@ void DroppingEffectManager::UpdateTileEffectVisuals() {
 
 }
 
-void DroppingEffectManager::ActivateTileEffect(int arrayPosition) {
+void BoosterDropManager::ActivateTileEffect(int arrayPosition) {
 	m_CurrentlyShownEffects[arrayPosition].m_IsActive = true;
 }
 
-TileType DroppingEffectManager::CheckEffectWithPlayerCollision(bool* collisionBool, Player& player) {
+TileType BoosterDropManager::CheckEffectWithPlayerCollision(bool* collisionBool, Player& player) {
 
 	TileType foundType = TileType::NoEvent;
 	int length = m_CurrentlyShownEffects.size();
@@ -125,11 +125,11 @@ TileType DroppingEffectManager::CheckEffectWithPlayerCollision(bool* collisionBo
 	return foundType;
 }
 
-bool DroppingEffectManager::CheckForEffectUsage() {
+bool BoosterDropManager::CheckForEffectUsage() {
 	bool collisionPlayerWithEffect = false;
 	PlayerManager& playerManager = static_cast<PlayerManager&>(*GameManager::m_ManagerMap[ManagerType::playerManager_T]);
 	BallManager& ballManager = static_cast<BallManager&>(*GameManager::m_ManagerMap[ManagerType::ballManager_T]);
-	DroppingEffectManager& droppingEffectManager = static_cast<DroppingEffectManager&>(*GameManager::m_ManagerMap[ManagerType::droppingEffectManager_T]);
+	BoosterDropManager& droppingEffectManager = static_cast<BoosterDropManager&>(*GameManager::m_ManagerMap[ManagerType::boosterDropManager_T]);
 
 	for (int i = 0; i < playerManager.m_Players.size(); i++) {
 		TileType effectType = droppingEffectManager.CheckEffectWithPlayerCollision(&collisionPlayerWithEffect, *playerManager.m_Players[i]);
@@ -156,7 +156,7 @@ bool DroppingEffectManager::CheckForEffectUsage() {
 	return false;
 }
 
-void DroppingEffectManager::TerminateManager() {
+void BoosterDropManager::TerminateManager() {
 	m_CurrentlyShownEffects.clear();
 	/*ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
 	if (ptrToRenderManager == nullptr) {

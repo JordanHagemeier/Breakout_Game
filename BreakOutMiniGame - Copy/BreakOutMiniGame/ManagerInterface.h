@@ -5,7 +5,7 @@ enum ManagerType {
 	renderManager_T,
 	ballManager_T,
 	tileManager_T,
-	droppingEffectManager_T,
+	boosterDropManager_T,
 	playerManager_T,
 	particleManager_T,
 	gameManager_T

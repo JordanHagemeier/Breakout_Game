@@ -5,7 +5,7 @@
 #include <random>
 #include "MathHelper.h"
 #include "RenderManager.h"
-#include "DroppingEffectManager.h"
+#include "BoosterDropManager.h"
 #include "TileType.h"
 #include "ManagerInterface.h"
 #include "GameManager.h"
@@ -19,7 +19,7 @@ class TileManager : public ManagerInterface {
 	static const float OUTLINE_THICKNESS;
 
 
-	std::vector<Tile*> m_Tiles;
+	std::vector<Tile> m_Tiles;
 	float coveredWindowPercentage = 0.33f;
 
 
@@ -30,7 +30,7 @@ class TileManager : public ManagerInterface {
 		RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
 
 		TILE_DIMENSIONS = sf::Vector2<float>((float)(renderManager.m_WindowPercentageSegmentPerDimension.x), (float)(renderManager.m_WindowPercentageSegmentPerDimension.y) * coveredWindowPercentage);
-		TILE_ARRAY_LENGTH = renderManager.m_SegmentCountPerWindowDimension.x * renderManager.m_SegmentCountPerWindowDimension.y;
+		TILE_ARRAY_LENGTH = renderManager.m_WindowDimensionsSegmentAmount.x * renderManager.m_WindowDimensionsSegmentAmount.y;
 
 		InitializeTileVector();
 		m_InitializationIsDone = true;
@@ -38,13 +38,13 @@ class TileManager : public ManagerInterface {
 	virtual bool HasFinishedInitialization() const { return m_InitializationIsDone; }
 	sf::Vector2<float> GetTilePosition(int i, RenderManager& renderManager);
 	TileType CreateTileType();
-	void NotifyDroppingEffectManager(int tileID);
+	void NotifyBoosterDropManager(Tile& tile);
 	void NotifyParticleEffectManager(Tile& tile);
 
 	virtual void Tick() {
 		for (int i = 0; i < m_Tiles.size(); i++) {
 			RenderManager& renderManager = static_cast<RenderManager&>(*GameManager::m_ManagerMap[ManagerType::renderManager_T]);
-			m_Tiles[i]->UpdateTileColorBasedOnHits(renderManager);
+			m_Tiles[i].UpdateTileColorBasedOnHits(renderManager);
 		}
 	}
 	virtual void TerminateManager();

@@ -267,11 +267,11 @@ bool Ball::CheckForBallTileCollisionAndMovementChanges(sf::Vector2f* bounceDirec
 	sf::Vector2f tileDimensions = tileManager.TILE_DIMENSIONS;
 
 	for (int i = 0; i < tileVectorLength; i++) {
-		bool alive = tileManager.m_Tiles[i]->isAlive;
+		bool alive = tileManager.m_Tiles[i].isAlive;
 		if (!alive) {
 			continue;
 		}
-		sf::Vector2f currentTilePosition = tileManager.m_Tiles[i]->position;
+		sf::Vector2f currentTilePosition = tileManager.m_Tiles[i].position;
 		float testingX = futureBallPosition.x;
 		float testingY = futureBallPosition.y;
 

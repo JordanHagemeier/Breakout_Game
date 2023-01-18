@@ -5,7 +5,7 @@
 #include <cmath>
 #include "Tile.h"
 #include "Ball.h"
-#include "DroppingEffect.h"
+#include "DroppedBooster.h"
 #include "Main_Fuctions.h"
 #include <algorithm>
 #include <chrono>
@@ -118,7 +118,7 @@ sf::Vertex m_PlayerNormalLineCoords [8];
 
 //Manager
 RenderManager* renderManager; 
-DroppingEffectManager* droppingEffectManager;
+BoosterDropManager* droppingEffectManager;
 TileManager* tileManager;
 BallManager* ballManager; 
 GameManager* gameManager;
@@ -224,7 +224,7 @@ void CreateManagers() {
 	RenderInfo renderInfo;
 	renderInfo.window = m_Window;
 	renderInfo.windowDimensions_px = sf::Vector2f(WINDOW_WIDTH_PX, WINDOW_HEIGHT_PX);
-	renderInfo.windowSegmentAmountPerDimension = sf::Vector2f(AMOUNT_WINDOW_SEGMENTS_WIDTH, AMOUNT_WINDOW_SEGMENTS_HEIGHT);
+	renderInfo.windowSegmentAmountPerDimension = sf::Vector2i(AMOUNT_WINDOW_SEGMENTS_WIDTH, AMOUNT_WINDOW_SEGMENTS_HEIGHT);
 	renderInfo.scalingFactor = scalingFactor;
 	renderManager = new RenderManager(renderInfo);
 
@@ -233,7 +233,7 @@ void CreateManagers() {
 
 
 	//3) Effect Manager for Tile Dropping Effects
-	droppingEffectManager = new DroppingEffectManager(TILE_ARRAY_LENGTH);
+	droppingEffectManager = new BoosterDropManager(TILE_ARRAY_LENGTH);
 
 	//4) Ball Manager
 	ballManager = new BallManager();
@@ -250,7 +250,7 @@ void CreateManagers() {
 
 
 	std::map<ManagerType, ManagerInterface*> managersMap;
-	managersMap[ManagerType::droppingEffectManager_T] = droppingEffectManager;
+	managersMap[ManagerType::boosterDropManager_T] = droppingEffectManager;
 	managersMap[ManagerType::ballManager_T] = ballManager;
 	managersMap[ManagerType::tileManager_T] = tileManager;
 	managersMap[ManagerType::renderManager_T] = renderManager;

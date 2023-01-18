@@ -27,7 +27,7 @@
     <ClCompile Include="Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DroppingEffect.cpp">
+    <ClCompile Include="DroppedBooster.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Ball.cpp">
@@ -42,7 +42,7 @@
     <ClCompile Include="GameManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DroppingEffectManager.cpp">
+    <ClCompile Include="BoosterDropManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PlayerManager.cpp">
@@ -77,7 +77,7 @@
     <ClInclude Include="Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DroppingEffect.h">
+    <ClInclude Include="DroppedBooster.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TileManager.h">
@@ -95,7 +95,7 @@
     <ClInclude Include="CollisionType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DroppingEffectManager.h">
+    <ClInclude Include="BoosterDropManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PlayerManager.h">

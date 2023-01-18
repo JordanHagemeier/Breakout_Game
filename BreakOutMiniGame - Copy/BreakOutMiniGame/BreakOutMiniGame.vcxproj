@@ -21,8 +21,8 @@
   <ItemGroup>
     <ClCompile Include="Ball.cpp" />
     <ClCompile Include="BallManager.cpp" />
-    <ClCompile Include="DroppingEffect.cpp" />
-    <ClCompile Include="DroppingEffectManager.cpp" />
+    <ClCompile Include="DroppedBooster.cpp" />
+    <ClCompile Include="BoosterDropManager.cpp" />
     <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleEffect.cpp" />
@@ -37,8 +37,8 @@
     <ClInclude Include="Ball.h" />
     <ClInclude Include="BallManager.h" />
     <ClInclude Include="CollisionType.h" />
-    <ClInclude Include="DroppingEffect.h" />
-    <ClInclude Include="DroppingEffectManager.h" />
+    <ClInclude Include="DroppedBooster.h" />
+    <ClInclude Include="BoosterDropManager.h" />
     <ClInclude Include="GameManager.h" />
     <ClInclude Include="Main_Fuctions.h" />
     <ClInclude Include="ManagerInterface.h" />

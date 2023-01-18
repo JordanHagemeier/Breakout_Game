@@ -3,26 +3,26 @@
 #include <vector>
 #include "Tile.h"
 #include <SFML/Graphics.hpp>
-#include "DroppingEffect.h"
+#include "DroppedBooster.h"
 #include "Player.h"
 
 
 
-class DroppingEffectManager : public ManagerInterface {
+class BoosterDropManager : public ManagerInterface {
 	int m_TileArrayLength;
 	bool m_InitializationIsDone = false;
 public:
 	
-	std::vector<DroppingEffect> m_CurrentlyShownEffects;
+	std::vector<DroppedBooster> m_CurrentlyShownEffects;
 
-	DroppingEffectManager() {}
-	DroppingEffectManager(const int tileArrayLength) {
+	BoosterDropManager() {}
+	BoosterDropManager(const int tileArrayLength) {
 
 		m_TileArrayLength = tileArrayLength;
 	}
 
 
-	virtual ManagerType GetManagerType() { return ManagerType::droppingEffectManager_T; }
+	virtual ManagerType GetManagerType() { return ManagerType::boosterDropManager_T; }
 	virtual void TickBeforeStart() {
 
 		SetupDroppingEffects();

@@ -28,13 +28,9 @@ class GameManager : public ManagerInterface{
 
 
 	public:
-		//static std::vector<Ball*>* m_Balls_In_Use;
-		//static std::vector<Tile*>* m_Tiles;
-		///*static std::vector<Player*>* m_Players;*/
-
-
 		static std::map<ManagerType, ManagerInterface*> m_ManagerMap;
 		static std::map<TileType, sf::Color> m_TileTypeToColorMap;
+		static sf::Color m_CrashColor;
 
 		GameManager(GameManagerInfo info) {
 		
@@ -48,7 +44,8 @@ class GameManager : public ManagerInterface{
 		virtual void TickBeforeStart() {};
 		virtual void Tick() {};
 		virtual void TerminateManager(){ m_TileTypeToColorMap.clear(); m_ManagerMap.clear(); };
-
+		
+		static sf::Color GetTileColorByType(TileType type);
 		static ManagerInterface* GetManagerByType(ManagerType type);
 		static void TerminateGame();
 };
