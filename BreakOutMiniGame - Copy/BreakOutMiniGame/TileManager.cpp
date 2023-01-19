@@ -7,6 +7,20 @@ int TileManager::TILE_ARRAY_LENGTH			= 0;
 const float TileManager::OUTLINE_THICKNESS	= 2.5f;
 
 
+void TileManager::TickBeforeStart() {
+	ManagerInterface* ptrToRenderManager = GameManager::GetManagerByType(ManagerType::renderManager_T);
+	if (ptrToRenderManager == nullptr) {
+		std::cout << "Manager Pointer is null" << std::endl;
+		return;
+	}
+	RenderManager& renderManager = static_cast<RenderManager&>(*ptrToRenderManager);
+
+	TILE_DIMENSIONS		= sf::Vector2<float>(renderManager.windowPercentagePerWidthSegment(), renderManager.windowPercentagePerHeightSegment() * coveredWindowPercentage);
+	TILE_ARRAY_LENGTH	= renderManager.windowWidthSegmentCount() * renderManager.windowHeightSegmentCount();
+
+	InitializeTileVector();
+	m_InitializationIsDone = true;
+}
 
 bool TileManager::InitializeTileVector() {
 
@@ -57,7 +71,7 @@ bool TileManager::InitializeTileVector() {
 
 sf::Vector2<float> TileManager::GetTilePosition(int i, RenderManager& renderManager) {
 
-	const sf::Vector2f index2DPosition = MathHelper::Get2DPositionWithIndex(i, renderManager.windowWidthInSegments());
+	const sf::Vector2f index2DPosition = MathHelper::Get2DPositionWithIndex(i, renderManager.windowWidthSegmentCount());
 
 	const sf::Vector2<float> position = sf::Vector2<float>((index2DPosition.x * renderManager.windowPercentagePerWidthSegment()) + OUTLINE_THICKNESS + (TILE_DIMENSIONS.x / 2.0f),
 													 (index2DPosition.y * renderManager.windowPercentagePerHeightSegment()) * coveredWindowPercentage + OUTLINE_THICKNESS + (TILE_DIMENSIONS.y / 2.0f));

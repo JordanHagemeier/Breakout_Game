@@ -28,7 +28,7 @@ class RenderManager : public ManagerInterface/*<ManagerType::renderManager_T>*/{
 	public: 
 		sf::Vector2f m_WindowDimensions_px;
 		sf::Vector2i m_WindowDimensionsSegmentAmount; 
-		int windowWidthInSegments() const { return m_WindowDimensionsSegmentAmount.x; } void windowWidthInSegments(int newWidthSegCount) { m_WindowDimensionsSegmentAmount.x = std::move(newWidthSegCount); }
+		int windowWidthSegmentCount() const { return m_WindowDimensionsSegmentAmount.x; } void windowWidthSegmentCount(int newWidthSegCount) { m_WindowDimensionsSegmentAmount.x = std::move(newWidthSegCount); }
 		int windowHeightSegmentCount() const {return m_WindowDimensionsSegmentAmount.y; } void windowHeightSegmentCount(int newHeightSegCount) { m_WindowDimensionsSegmentAmount.y = std::move(newHeightSegCount); }
 
 		sf::Vector2f m_WindowPercentageSegmentPerDimension;
